@@ -12,7 +12,7 @@ import { Reveal } from "./Reveal";
 // real figures from the shop's own data, on a flat dark field right under the banner
 export function Facts({ items, hotline }: { items: { n: number; label: string }[]; hotline: string }) {
   return (
-    <section aria-label="Hùng Phát trong vài con số" className="bg-[#2b2b2b] text-white">
+    <section aria-label="Số liệu cửa hàng" className="bg-[#2b2b2b] text-white">
       <div className="mx-auto grid max-w-[1250px] gap-x-4 gap-y-8 px-4 py-12 grid-cols-3 md:gap-x-8 md:py-20 lg:grid-cols-[repeat(3,1fr)_1.4fr]">
         {items.map((x, k) => (
           <Reveal key={x.label} delay={k * 90}>
@@ -124,11 +124,11 @@ export async function Footer() {
           ))}
           <div className="mt-5 bg-neutral-900 p-5">
             <Image
-              src="/sites/xemayhoangkim/logo.jpg"
+              src="/sites/yenthoa/logo.png"
               alt={BRAND}
-              width={1494}
-              height={1064}
-              className="mb-3 h-20 w-auto rounded bg-white p-1"
+              width={1600}
+              height={984}
+              className="mb-3 h-14 w-auto"
             />
             <p className="font-bold uppercase">{BRAND}</p>
             <div className="mt-3 flex gap-3" aria-label="Mạng xã hội">
@@ -148,7 +148,7 @@ export async function Footer() {
         </Reveal>
       </div>
       <div className="mx-auto max-w-[1250px] px-4 pb-2 pt-6">
-        <p aria-hidden className="select-none whitespace-nowrap text-[min(15.6vw,213px)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]">Hùng Phát</p>
+        <p aria-hidden className="select-none whitespace-nowrap text-[min(15.6vw,213px)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]">{BRAND}</p>
       </div>
       <p className="mx-auto max-w-[1250px] px-4 py-5 text-[13px] uppercase text-neutral-300">© 2026 {BRAND}</p>
     </footer>

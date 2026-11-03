@@ -15,7 +15,7 @@ export type HeroSlide = { eyebrow: string; title: string; sub: string; img: stri
 const IMG = "/sites/xemayhoangkim/img";
 
 export const DEFAULT_SHOP: Shop = {
-  brand: "Xe máy Hùng Dũng - Hùng Phát",
+  brand: "Yên Thoa",
   hotlines: ["0789.619.698", "0971.839.730"],
   facebook: "https://www.facebook.com/share/1FPL6o3iSz/?mibextid=wwXIfr",
   branches: [

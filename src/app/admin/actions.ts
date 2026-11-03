@@ -1,0 +1,391 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import {
+  assertAdmin, authConfigured, checkCredentials, clearFailures, clientKey, endSession, recordFailure, startSession, tooManyAttempts,
+} from "@/lib/auth";
+import { exec, query, transaction } from "@/lib/db";
+import { type HeroSlide, type Shop, type Store } from "@/lib/defaults";
+import { taxonomyUsage } from "@/lib/admin-repo";
+import { getCollections, getTaxonomy } from "@/lib/repo";
+import { TAXONOMY_KEY, type BrandMenu, type Taxonomy } from "@/lib/taxonomy";
+import { MAX_DEPTH, MAX_NODES, MENU_KEY, type MenuNode } from "@/lib/menu";
+import { SETTING_KEY, MAX_CARDS, type CornerCard, type HomeSection } from "@/lib/home-sections";
+import { cleanHtml, htmlToText } from "@/lib/sanitize";
+import { seedAll } from "@/lib/seed";
+import type { Variant } from "@/lib/products";
+import { normalizeSpecs, normalizeVariants } from "@/lib/variants";
+import { slugify } from "@/lib/slug";
+
+export type FormState = { error?: string };
+
+const text = (f: FormData, k: string, max: number) => String(f.get(k) ?? "").trim().slice(0, max);
+const num = (f: FormData, k: string) => Math.max(0, Math.round(Number(String(f.get(k) ?? "0").replace(/[^\d.]/g, "")) || 0));
+const lines = (f: FormData, k: string, max: number) => text(f, k, 20000).split("\n").map((l) => l.trim()).filter(Boolean).slice(0, max);
+// where a banner button may go: a path on this site, an anchor, any http(s) page, tel: or mailto:.
+// Anything else (javascript:, data:, //host) is refused.
+const linkUrl = (v: string) => (v === "" || /^\/(?!\/)/.test(v) || /^#/.test(v) || /^https?:\/\//i.test(v) || /^(tel|mailto):/i.test(v) ? v : null);
+// images: our own paths or https URLs only
+const imgUrl = (v: string) => (v === "" || /^\/[^/]/.test(v) || /^https:\/\//i.test(v) ? v : null);
+const refresh = () => revalidatePath("/", "layout");
+const isDup = (e: unknown) => typeof e === "object" && e !== null && (e as { code?: string }).code === "ER_DUP_ENTRY";
+
+// ---------------------------------------------------------------- session
+export async function loginAction(_: FormState, f: FormData): Promise<FormState> {
+  if (!authConfigured()) return { error: "Chưa cấu hình ADMIN_PASSWORD_HASH và SESSION_SECRET trên máy chủ." };
+  const key = await clientKey();
+  if (tooManyAttempts(key)) return { error: "Nhập sai quá nhiều lần. Thử lại sau 15 phút." };
+  if (!checkCredentials(text(f, "user", 100), String(f.get("password") ?? "").slice(0, 200))) {
+    recordFailure(key);
+    return { error: "Sai tên đăng nhập hoặc mật khẩu." };
+  }
+  clearFailures(key);
+  await startSession();
+  redirect("/admin");
+}
+
+export async function logoutAction() {
+  await endSession();
+  redirect("/admin/login");
+}
+
+// ---------------------------------------------------------------- posts
+export async function savePostAction(_: FormState, f: FormData): Promise<FormState> {
+  await assertAdmin();
+  const id = Number(f.get("id") || 0);
+  const title = text(f, "title", 300);
+  if (!title) return { error: "Cần nhập tiêu đề." };
+  const date = text(f, "date", 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Ngày không hợp lệ." };
+  const section = text(f, "section", 40);
+  if (!(await getTaxonomy()).sections.some((s) => s.id === section)) return { error: "Mục không hợp lệ." };
+  const img = imgUrl(text(f, "img", 500));
+  if (img === null) return { error: "Ảnh bìa phải là đường dẫn bắt đầu bằng / hoặc https://" };
+  const slug = slugify(text(f, "slug", 191) || title);
+  if (!slug) return { error: "Không tạo được đường dẫn từ tiêu đề." };
+  const html = cleanHtml(String(f.get("html") ?? "").slice(0, 2_000_000));
+  const excerpt = text(f, "excerpt", 600) || htmlToText(html).slice(0, 200);
+  const published = f.get("published") ? 1 : 0;
+  try {
+    if (id) await exec("UPDATE posts SET slug=?, title=?, date=?, section=?, excerpt=?, img=?, html=?, published=? WHERE id=?", [slug, title, date, section, excerpt, img || null, html, published, id]);
+    else await exec("INSERT INTO posts (slug, title, date, section, excerpt, img, html, published) VALUES (?,?,?,?,?,?,?,?)", [slug, title, date, section, excerpt, img || null, html, published]);
+  } catch (e) {
+    if (isDup(e)) return { error: `Đường dẫn "${slug}" đã có bài khác dùng. Hãy đổi đường dẫn.` };
+    throw e;
+  }
+  refresh();
+  redirect("/admin/bai-viet");
+}
+
+export async function deletePostAction(f: FormData) {
+  await assertAdmin();
+  await exec("DELETE FROM posts WHERE id = ?", [Number(f.get("id"))]);
+  refresh();
+}
+
+export async function togglePostAction(f: FormData) {
+  await assertAdmin();
+  await exec("UPDATE posts SET published = 1 - published WHERE id = ?", [Number(f.get("id"))]);
+  refresh();
+}
+
+// ---------------------------------------------------------------- products
+export async function saveProductAction(_: FormState, f: FormData): Promise<FormState> {
+  await assertAdmin();
+  const id = Number(f.get("id") || 0);
+  const name = text(f, "name", 200);
+  if (!name) return { error: "Cần nhập tên xe." };
+  const brand = text(f, "brand", 60);
+  const tax = await getTaxonomy();
+  if (brand && !tax.brands.some((b) => b.id === brand)) return { error: "Hãng không hợp lệ." };
+  const types = f.getAll("types").map(String).filter((t) => tax.types.some((x) => x.id === t));
+  const price = num(f, "price");
+  const priceMax = Math.max(price, num(f, "priceMax"));
+  const img = imgUrl(text(f, "img", 500));
+  if (img === null) return { error: "Ảnh đại diện phải bắt đầu bằng / hoặc https://" };
+  const gallery = lines(f, "gallery", 30);
+  if (gallery.some((u) => imgUrl(u) === null)) return { error: "Mỗi dòng trong thư viện ảnh phải bắt đầu bằng / hoặc https://" };
+  const colors = text(f, "colors", 1000).split(",").map((c) => c.trim()).filter(Boolean).slice(0, 20);
+  const rawVariants = parseJson<unknown>(f, "variants") ?? [];
+  if (!Array.isArray(rawVariants) || rawVariants.length > 60) return { error: "Tối đa 60 dòng phiên bản và màu." };
+  const variants: Variant[] = [];
+  for (const v of normalizeVariants(rawVariants)) {
+    const vImg = (v.img ?? "").slice(0, 500);
+    if (imgUrl(vImg) === null) return { error: "Ảnh của mỗi dòng phải bắt đầu bằng / hoặc https://" };
+    const attrs = v.attrs.slice(0, 6).map((a) => ({ name: a.name.slice(0, 60), value: a.value.slice(0, 100) }));
+    variants.push({ attrs, img: vImg || null, price: Math.max(0, Math.round(v.price)) });
+  }
+  const rawSpecs = parseJson<unknown>(f, "specs") ?? [];
+  if (!Array.isArray(rawSpecs) || rawSpecs.length > 12) return { error: "Tối đa 12 nhóm thông số." };
+  const specs = normalizeSpecs(rawSpecs).map((g) => ({
+    title: g.title.slice(0, 80),
+    items: g.items.slice(0, 60).map((i) => ({ label: i.label.slice(0, 150), value: i.value.slice(0, 300) })),
+  }));
+  const slug = slugify(text(f, "slug", 191) || name);
+  if (!slug) return { error: "Không tạo được đường dẫn từ tên xe." };
+  const code = text(f, "code", 40);
+  if (code && (await query<{ id: number }>("SELECT id FROM products WHERE code = ? AND id <> ? LIMIT 1", [code, id])).length) return { error: `Mã "${code}" đã có xe khác dùng. Hãy đổi mã.` };
+  const shortHtml = cleanHtml(String(f.get("shortHtml") ?? "").slice(0, 200_000));
+  const html = cleanHtml(String(f.get("html") ?? "").slice(0, 2_000_000));
+  const active = f.get("active") ? 1 : 0;
+  const cover = img || gallery[0] || null;
+  const args = [slug, code, name, brand, JSON.stringify(types), price, priceMax, cover, JSON.stringify(gallery), JSON.stringify(colors), JSON.stringify(variants), JSON.stringify(specs), shortHtml, html, active];
+  let pid = id;
+  try {
+    if (id) await exec("UPDATE products SET slug=?, code=?, name=?, brand=?, types=?, price=?, price_max=?, img=?, gallery=?, colors=?, variants=?, specs=?, short_html=?, html=?, active=? WHERE id=?", [...args, id]);
+    else pid = (await exec("INSERT INTO products (slug, code, name, brand, types, price, price_max, img, gallery, colors, variants, specs, short_html, html, active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args)).insertId;
+  } catch (e) {
+    if (isDup(e)) return { error: `Đường dẫn "${slug}" đã có xe khác dùng. Hãy đổi đường dẫn.` };
+    throw e;
+  }
+  await exec("UPDATE products SET code = CONCAT('SP', LPAD(id, 4, '0')) WHERE id = ? AND (code IS NULL OR code = '')", [pid]);
+  refresh();
+  redirect("/admin/san-pham");
+}
+
+export async function deleteProductAction(f: FormData) {
+  await assertAdmin();
+  await exec("DELETE FROM products WHERE id = ?", [Number(f.get("id"))]);
+  refresh();
+}
+
+export async function toggleProductAction(f: FormData) {
+  await assertAdmin();
+  await exec("UPDATE products SET active = 1 - active WHERE id = ?", [Number(f.get("id"))]);
+  refresh();
+}
+
+// ---------------------------------------------------------------- shop info + banners
+const parseJson = <T,>(f: FormData, k: string): T | null => {
+  try {
+    return JSON.parse(String(f.get(k) ?? "")) as T;
+  } catch {
+    return null;
+  }
+};
+const clip = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
+
+export async function saveShopAction(_: FormState, f: FormData): Promise<FormState> {
+  await assertAdmin();
+  const brand = text(f, "brand", 120);
+  if (!brand) return { error: "Cần nhập tên cửa hàng." };
+  const hotlines = lines(f, "hotlines", 6);
+  if (hotlines.length === 0 || hotlines.some((h) => !/^[0-9 .+\-]{8,20}$/.test(h))) return { error: "Hotline chỉ gồm số, mỗi dòng một số (ít nhất một số)." };
+  const facebook = text(f, "facebook", 500);
+  if (facebook && !/^https:\/\//i.test(facebook)) return { error: "Link Facebook phải bắt đầu bằng https://" };
+  const branches = lines(f, "branches", 20).map((b) => b.slice(0, 300));
+  const rawStores = parseJson<Partial<Store>[]>(f, "stores");
+  if (!Array.isArray(rawStores) || rawStores.length > 20) return { error: "Danh sách cửa hàng không hợp lệ." };
+  const stores: Store[] = [];
+  for (const s of rawStores) {
+    const img = clip(s.img, 500);
+    if (imgUrl(img) === null) return { error: "Ảnh cửa hàng phải bắt đầu bằng / hoặc https://" };
+    if (!clip(s.name, 120)) continue;
+    stores.push({ name: clip(s.name, 120), kind: clip(s.kind, 120), address: clip(s.address, 300), hours: clip(s.hours, 200), img });
+  }
+  const shop: Shop = { brand, hotlines, facebook, branches, stores };
+  await exec("INSERT INTO settings (k, v) VALUES ('shop', ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [JSON.stringify(shop)]);
+  refresh();
+  return {};
+}
+
+type Slide = HeroSlide & { link: string; active: boolean };
+function parseSlides(f: FormData): { error: string } | { slides: Slide[] } {
+  const raw = parseJson<(Partial<HeroSlide> & { active?: boolean })[]>(f, "slides");
+  if (!Array.isArray(raw) || raw.length > 10) return { error: "Tối đa 10 banner đầu trang." };
+  const slides: Slide[] = [];
+  for (const s of raw) {
+    const title = clip(s.title, 200);
+    const img = clip(s.img, 500);
+    if (!title) return { error: "Mỗi banner đầu trang cần có tiêu đề." };
+    if (!img || imgUrl(img) === null) return { error: `Banner "${title}": ảnh phải bắt đầu bằng / hoặc https://` };
+    const link = linkUrl(clip(s.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+    if (link === null) return { error: `Banner "${title}": đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+    slides.push({ eyebrow: clip(s.eyebrow, 200), title, sub: clip(s.sub, 300), img, link, active: s.active !== false });
+  }
+  return { slides };
+}
+
+async function parseSections(f: FormData): Promise<{ error: string } | { sections: HomeSection[] }> {
+  const raw = parseJson<Partial<HomeSection>[]>(f, "sections");
+  if (!Array.isArray(raw) || raw.length > 30) return { error: "Tối đa 30 mục." };
+  const tax = await getTaxonomy();
+  const sections: HomeSection[] = [];
+  const used = new Set<string>();
+  for (const r of raw) {
+    const name = clip(r.name, 80) || (r.kind === "html" ? "Khối HTML" : "");
+    if (!name) return { error: "Mỗi mục cần có tên." };
+    const banner = r.kind === "banner";
+    const slidesBlock = r.kind === "slides";
+    let id = slugify(clip(r.id, 60)) || slugify(name) || "muc";
+    for (let n = 2; used.has(id); n++) id = `${slugify(clip(r.id, 50)) || "muc"}-${n}`;
+    used.add(id);
+    if (slidesBlock) {
+      if (sections.some((x) => x.kind === "slides")) return { error: "Chỉ được có một mục Banner đầu trang." };
+      const cardsMode = r.cardsMode === "custom" || r.cardsMode === "off" ? r.cardsMode : "auto";
+      const rawCards = Array.isArray(r.cards) ? r.cards : [];
+      if (rawCards.length > MAX_CARDS) return { error: `Tối đa ${MAX_CARDS} thẻ ở góc banner.` };
+      const cards: CornerCard[] = [];
+      for (const c of rawCards) {
+        const title = clip(c?.title, 80);
+        const img = clip(c?.img, 500);
+        if (!title) return { error: "Mỗi thẻ ở góc banner cần có tiêu đề." };
+        if (!img || imgUrl(img) === null) return { error: `Thẻ "${title}": cần chọn ảnh (đường dẫn bắt đầu bằng / hoặc https://).` };
+        const link = linkUrl(clip(c?.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+        if (link === null || link === "") return { error: `Thẻ "${title}": cần đường dẫn bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+        cards.push({ title, img, link });
+      }
+      if (cardsMode === "custom" && cards.length === 0) return { error: "Chọn kiểu thẻ tự tạo thì cần ít nhất một thẻ (hoặc đổi sang tự động / ẩn)." };
+      sections.push({ id, kind: "slides", image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, cardsMode, cards });
+      continue;
+    }
+    if (r.kind === "html") {
+      const html = cleanHtml(String(r.html ?? "").slice(0, 100_000));
+      sections.push({ id, kind: "html", html, image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    if (r.kind === "collections") {
+      if (sections.some((x) => x.kind === "collections")) return { error: "Chỉ được có một mục Bộ sưu tập." };
+      // empty = show every collection; otherwise only the picked ones, in this order
+      const known = new Set((await getCollections()).map((c) => c.id));
+      const picked = [...new Set((Array.isArray(r.slugs) ? r.slugs : []).map((x) => clip(x, 120)))].filter((x) => known.has(x));
+      sections.push({ id, kind: "collections", display: r.display === "cards" ? "cards" : "showcase", image: "", link: "", name, collection: "", brand: "", slugs: picked, backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    if (banner) {
+      const image = clip(r.image, 500);
+      if (!image || imgUrl(image) === null) return { error: `Banner "${name}": cần chọn ảnh (đường dẫn bắt đầu bằng / hoặc https://).` };
+      const link = linkUrl(clip(r.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+      if (link === null) return { error: `Banner "${name}": đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+      sections.push({ id, kind: "banner", image, link, name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    const collection = clip(r.collection, 120);
+    if (collection && !(await getCollections()).some((c) => c.id === collection)) return { error: `Mục "${name}": bộ sưu tập không còn tồn tại.` };
+    const brand = clip(r.brand, 60);
+    if (brand && !tax.brands.some((b) => b.id === brand)) return { error: `Mục "${name}": hãng không hợp lệ.` };
+    const slugs = [...new Set((Array.isArray(r.slugs) ? r.slugs : []).map((x) => clip(x, 120)).filter(Boolean))].slice(0, 80);
+    if (!collection && !brand && slugs.length === 0) return { error: `Mục "${name}": chọn hãng, bộ sưu tập hoặc thêm ít nhất một xe vào danh sách.` };
+    const backdrop = clip(r.backdrop, 500);
+    if (imgUrl(backdrop) === null) return { error: `Mục "${name}": ảnh nền phải bắt đầu bằng / hoặc https://` };
+    const backdropMobile = clip(r.backdropMobile, 500);
+    if (imgUrl(backdropMobile) === null) return { error: `Mục "${name}": ảnh nền trên điện thoại phải bắt đầu bằng / hoặc https://` };
+    sections.push({ id, kind: "showcase", image: "", link: "", name, collection, brand, slugs, backdrop, backdropMobile, dark: !!r.dark, active: r.active !== false });
+  }
+  return { sections };
+}
+
+export async function saveHomeAction(_: FormState, f: FormData): Promise<FormState> {
+  await assertAdmin();
+  const s = parseSlides(f);
+  if ("error" in s) return { error: s.error };
+  const c = await parseSections(f);
+  if ("error" in c) return { error: c.error };
+  await transaction(async (run) => {
+    await run("DELETE FROM hero_slides");
+    for (const [i, x] of s.slides.entries()) {
+      await run("INSERT INTO hero_slides (eyebrow, title, sub, img, link, sort, active) VALUES (?,?,?,?,?,?,?)", [x.eyebrow, x.title, x.sub, x.img, x.link, i, x.active ? 1 : 0]);
+    }
+    await run("INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [SETTING_KEY, JSON.stringify(c.sections)]);
+  });
+  refresh();
+  return {};
+}
+
+export async function saveTaxonomyAction(_: FormState, f: FormData): Promise<FormState> {
+  await assertAdmin();
+  const raw = parseJson<Record<string, { id?: string; name?: string; active?: boolean; menu?: unknown }[]>>(f, "taxonomy");
+  if (!raw || typeof raw !== "object") return { error: "Dữ liệu không hợp lệ." };
+  const current = await getTaxonomy();
+  const usage = await taxonomyUsage();
+
+  const clean = <T,>(key: "brands" | "types" | "sections", label: string, extra: (r: { menu?: unknown }) => T): ({ id: string; name: string; active: boolean } & T)[] | string => {
+    const rows = raw[key];
+    if (!Array.isArray(rows) || rows.length > 60) return `${label}: tối đa 60 mục.`;
+    const known = new Set(current[key].map((x) => x.id));
+    const out: ({ id: string; name: string; active: boolean } & T)[] = [];
+    const used = new Set<string>();
+    for (const r of rows) {
+      const name = clip(r.name, 60);
+      if (!name) return `${label}: mỗi mục cần có tên.`;
+      let id = clip(r.id, 60);
+      if (id) {
+        // an existing id never changes; anything else is made from the name
+        if (!/^[a-z0-9-]{1,60}$/.test(id) || !known.has(id)) return `${label} "${name}": mã không hợp lệ.`;
+      } else {
+        const base = slugify(name) || "muc";
+        id = base;
+        for (let n = 2; used.has(id) || known.has(id); n++) id = `${base}-${n}`.slice(0, 60);
+      }
+      if (used.has(id)) return `${label}: bị trùng mã "${id}".`;
+      used.add(id);
+      out.push({ id, name, active: r.active !== false, ...extra(r) });
+    }
+    if (out.length === 0) return `${label}: cần ít nhất một mục.`;
+    for (const old of current[key]) {
+      if (!used.has(old.id) && (usage[key][old.id] ?? 0) > 0) {
+        return `${label} "${old.name}" đang có ${usage[key][old.id]} ${key === "sections" ? "bài viết" : "xe"} dùng nên chưa xoá được. Hãy chuyển chúng sang mục khác hoặc chỉ tắt "Đang hiện".`;
+      }
+    }
+    return out;
+  };
+
+  const brands = clean("brands", "Hãng", (r) => ({ menu: (r.menu === "xe-may" || r.menu === "xe-dien" ? r.menu : "") as BrandMenu }));
+  const types = clean("types", "Loại xe", () => ({}));
+  const sections = clean("sections", "Mục tin tức", (r) => ({ menu: !!r.menu }));
+  for (const x of [brands, types, sections]) if (typeof x === "string") return { error: x };
+  const next = { brands, types, sections } as Taxonomy;
+
+  // the header menu: a tree
+  const rawMenu = parseJson<{ main?: unknown; secondary?: unknown }>(f, "menu");
+  if (!rawMenu || typeof rawMenu !== "object") return { error: "Menu không hợp lệ." };
+  let count = 0;
+  const readTree = (raw: unknown, depth: number, where: string): MenuNode[] | string => {
+    if (!Array.isArray(raw)) return `${where}: dữ liệu không hợp lệ.`;
+    if (depth > MAX_DEPTH) return `${where}: menu tối đa ${MAX_DEPTH} cấp.`;
+    const out: MenuNode[] = [];
+    for (const r of raw as Partial<MenuNode>[]) {
+      const label = clip(r.label, 60);
+      if (!label) return `${where}: mỗi mục menu cần có tên.`;
+      if (++count > MAX_NODES) return `Menu: tối đa ${MAX_NODES} mục.`;
+      const href = linkUrl(clip(r.href, 500).replace(/[\u0000-\u001f\s]/g, ""));
+      if (href === null) return `Menu "${label}": đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:`;
+      const source = clip(r.source, 80);
+      if (source && !/^(brands:(xe-may|xe-dien|all)|sections:(menu|all)|collections:all)$/.test(source)) return `Menu "${label}": nguồn mục con không hợp lệ.`;
+      const kids = source ? [] : readTree(r.children ?? [], depth + 1, `${where} > ${label}`);
+      if (typeof kids === "string") return kids;
+      out.push({ id: slugify(clip(r.id, 60)) || `n${count}`, label, href, active: r.active !== false, source, children: kids });
+    }
+    return out;
+  };
+  const main = readTree(rawMenu.main ?? [], 1, "Menu chính");
+  if (typeof main === "string") return { error: main };
+  const secondary = readTree(rawMenu.secondary ?? [], 1, "Menu phụ");
+  if (typeof secondary === "string") return { error: secondary };
+
+  await transaction(async (run) => {
+    const put = "INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)";
+    await run(put, [TAXONOMY_KEY, JSON.stringify(next)]);
+    await run(put, [MENU_KEY, JSON.stringify({ main, secondary })]);
+  });
+  refresh();
+  return {};
+}
+
+// back to one block per brand
+export async function resetHomeSectionsAction(): Promise<void> {
+  await assertAdmin();
+  await exec("DELETE FROM settings WHERE k = ?", [SETTING_KEY]);
+  refresh();
+  redirect("/admin/trang-chu");
+}
+
+// ---------------------------------------------------------------- first run
+// loads the bundled posts, products, banners and shop info; never overwrites existing rows
+export async function seedAction(): Promise<void> {
+  await assertAdmin();
+  await seedAll({ force: false });
+  refresh();
+  redirect("/admin");
+}

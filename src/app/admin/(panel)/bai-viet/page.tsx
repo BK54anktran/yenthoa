@@ -1,0 +1,63 @@
+import Link from "next/link";
+import { deletePostAction, togglePostAction } from "@/app/admin/actions";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { PageTitle, btnCls, btnGhost, inputCls } from "@/components/admin/ui";
+import { listPosts } from "@/lib/admin-repo";
+import { formatDate, postHref } from "@/lib/posts";
+import { getTaxonomy } from "@/lib/repo";
+import { sectionName } from "@/lib/taxonomy";
+
+export default async function PostsAdmin({ searchParams }: { searchParams: Promise<{ q?: string; trang?: string }> }) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().slice(0, 100);
+  const taxonomy = await getTaxonomy();
+  const { rows, total, pages, page } = await listPosts(q, Number(sp.trang) || 1);
+  const href = (p: number) => `/admin/bai-viet?${new URLSearchParams({ ...(q ? { q } : {}), trang: String(p) })}`;
+  return (
+    <>
+      <PageTitle action={<Link href="/admin/bai-viet/moi" className={btnCls}>+ Thêm bài</Link>}>Bài viết ({total})</PageTitle>
+      <form className="mb-4 flex gap-2">
+        <input name="q" defaultValue={q} placeholder="Tìm theo tiêu đề..." className={`${inputCls} max-w-sm`} />
+        <button className={btnGhost}>Tìm</button>
+      </form>
+      <div className="overflow-x-auto bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
+            <tr><th className="p-3">Tiêu đề</th><th className="p-3">Mục</th><th className="p-3">Ngày</th><th className="p-3">Trạng thái</th><th className="p-3" /></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t border-neutral-100">
+                <td className="p-3"><Link href={`/admin/bai-viet/${r.id}`} className="font-medium hover:text-[#de0000]">{r.title}</Link></td>
+                <td className="p-3 whitespace-nowrap">{sectionName(taxonomy, r.section)}</td>
+                <td className="p-3 whitespace-nowrap">{formatDate(r.date)}</td>
+                <td className="p-3">
+                  <form action={togglePostAction}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button className={r.published ? "text-green-700 hover:underline" : "text-neutral-400 hover:underline"}>{r.published ? "Đang hiện" : "Đang ẩn"}</button>
+                  </form>
+                </td>
+                <td className="p-3 whitespace-nowrap text-right">
+                  <Link href={postHref(r.slug)} target="_blank" className="mr-3 text-xs text-neutral-500 hover:underline">Xem</Link>
+                  <Link href={`/admin/bai-viet/${r.id}`} className="mr-3 text-xs text-[#de0000] hover:underline">Sửa</Link>
+                  <form action={deletePostAction} className="inline">
+                    <input type="hidden" name="id" value={r.id} />
+                    <ConfirmButton message={`Xoá bài "${r.title}"? Không khôi phục được.`} className="text-xs text-neutral-500 hover:text-[#de0000] hover:underline">Xoá</ConfirmButton>
+                  </form>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-neutral-500">Không có bài nào.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {pages > 1 && (
+        <nav aria-label="Phân trang" className="mt-4 flex items-center gap-3 text-sm">
+          {page > 1 && <Link href={href(page - 1)} className={btnGhost}>‹ Trước</Link>}
+          <span>Trang {page}/{pages}</span>
+          {page < pages && <Link href={href(page + 1)} className={btnGhost}>Sau ›</Link>}
+        </nav>
+      )}
+    </>
+  );
+}

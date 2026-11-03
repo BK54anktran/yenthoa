@@ -5,7 +5,7 @@ Các file JSON trong `src/content` chỉ còn là **dữ liệu mẫu** để n�
 
 ## Dựng database chỉ bằng một file: `db/seed.sql`
 
-`db/seed.sql` tự tạo database `xemay_hungphat_db` (utf8mb4), các bảng và toàn bộ dữ liệu mẫu (113 bài, 64 xe cùng 361 phiên bản/màu, banner, thông tin cửa hàng).
+`db/seed.sql` tự tạo database `yenthoa_db` (utf8mb4), các bảng và toàn bộ dữ liệu mẫu (119 bài, 64 xe cùng 361 phiên bản/màu, banner, thông tin cửa hàng).
 Chạy trực tiếp trong MySQL:
 
 ```sql
@@ -26,7 +26,7 @@ Chạy lại an toàn: dòng nào đã có thì giữ nguyên, không ghi đè b
 Sau khi import `db/seed.sql`, tạo `.env.local` (UTF-8) ở gốc dự án:
 
 ```bash
-DATABASE_URL=mysql://root:MAT_KHAU@127.0.0.1:3306/xemay_hungphat_db
+DATABASE_URL=mysql://root:MAT_KHAU@127.0.0.1:3306/yenthoa_db
 ```
 
 ```bash
@@ -46,7 +46,7 @@ Sinh lại `db/seed.sql` sau khi dữ liệu trong `src/content` đổi: `npm ru
 3. Vào `/admin`, đăng nhập, bấm **Nạp dữ liệu mẫu** ở trang Tổng quan (chỉ hiện khi cơ sở dữ liệu trống).
 
 Dữ liệu nằm trong hai volume: `mysql-data` (database) và `uploads` (ảnh tải lên, `/data`). **Sao lưu cả hai.**
-Sao lưu database: `docker compose exec mysql mysqldump -u hungphat -p xemay_hungphat_db > backup.sql`.
+Sao lưu database: `docker compose exec mysql mysqldump -u yenthoa -p yenthoa_db > backup.sql`.
 
 Nếu chạy sau một proxy (Nginx, Caddy, Cloudflare...) có HTTPS, proxy phải gửi header `X-Forwarded-Proto: https`
 (hoặc đặt `COOKIE_SECURE=true`) để cookie đăng nhập có cờ Secure.
@@ -95,11 +95,6 @@ Hiện tối đa 48 xe và 30 bài. Trang này không được đưa lên Google
 - Mọi trang và mọi thao tác ghi đều tự kiểm tra phiên, không chỉ dựa vào `proxy.ts`.
 - HTML khi lưu được lọc theo danh sách thẻ cho phép (không script, không `style`, không sự kiện `on...`).
 - Đổi mật khẩu: chạy lại `npm run admin:hash`, thay giá trị trong môi trường, khởi động lại ứng dụng.
-
-## Nhập lại dữ liệu từ nguồn khác
-
-`scripts/import-hoangkim.mjs` và `scripts/import-facebook.mjs` vẫn ghi vào `src/content` (và `scripts/*.json`).
-Sau khi chạy lại, nạp vào database bằng `npm run db:seed -- --force` (ghi đè bài trùng đường dẫn, kể cả bài đã sửa trong admin).
 
 ## Chưa kiểm thử
 

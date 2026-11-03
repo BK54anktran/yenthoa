@@ -28,10 +28,10 @@ export type HomeSection = {
 };
 
 export const BACKDROP_PRESETS = [
-  { label: "Tường bê tông", src: "/sites/hungphat/bg/concrete.webp", dark: false },
-  { label: "Vòm cong", src: "/sites/hungphat/bg/arches.webp", dark: false },
-  { label: "Khung lưới", src: "/sites/hungphat/bg/wireframe.webp", dark: false },
-  { label: "Nền tối", src: "/sites/hungphat/bg/dark.webp", dark: true },
+  { label: "Tường bê tông", src: "/sites/yenthoa/bg/concrete.webp", dark: false },
+  { label: "Vòm cong", src: "/sites/yenthoa/bg/arches.webp", dark: false },
+  { label: "Khung lưới", src: "/sites/yenthoa/bg/wireframe.webp", dark: false },
+  { label: "Nền tối", src: "/sites/yenthoa/bg/dark.webp", dark: true },
 ];
 
 export const SETTING_KEY = "home_sections";

@@ -15,17 +15,19 @@ export type HeroSlide = { eyebrow: string; title: string; sub: string; img: stri
 const IMG = "/sites/xemayhoangkim/img";
 
 export const DEFAULT_SHOP: Shop = {
-  brand: "Yên Thoa",
-  hotlines: ["0789.619.698", "0971.839.730"],
-  facebook: "https://www.facebook.com/share/1FPL6o3iSz/?mibextid=wwXIfr",
+  brand: "Siêu Thị Yên Thoa",
+  hotlines: ["0902 003 145", "091 468 64 24"],
+  facebook: "https://www.facebook.com/SieuthiYenThoaYM/",
   branches: [
-    "Trụ sở chính: 00 Đường Mẫu, Phường 1, Quận 1, TP. Hồ Chí Minh",
-    "Chi nhánh 2: 00 Đường Mẫu, Phường 2, TP. Hồ Chí Minh",
-    "Chi nhánh 3: 00 Đường Mẫu, Phường 3, TP. Hồ Chí Minh",
+    "CN Yên Thổ - Yên Mô - Ninh Bình",
+    "CN 876 Nguyễn Công Trứ - P. Ninh Sơn - TP Hoa Lư - Ninh Bình",
+    "CN Khánh Nhạc - Yên Khánh - Ninh Bình (cổng trường THPT Yên Khánh A)",
+    "CN Khánh Hải - Văn Hải - Kim Sơn - Ninh Bình",
+    "CN Đồng Quan - P. Nam Hoa Lư - Ninh Bình",
   ],
   stores: [
-    { name: "Trụ sở chính", kind: "Showroom và xưởng dịch vụ", address: "00 Đường Mẫu, Phường 1, Quận 1, TP. Hồ Chí Minh", hours: "7:30 - 19:00, thứ Hai đến Chủ nhật", img: `${IMG}/dich-vu-2.jpg` },
-    { name: "Chi nhánh 2", kind: "Showroom", address: "00 Đường Mẫu, Phường 2, TP. Hồ Chí Minh", hours: "8:00 - 18:30, thứ Hai đến Chủ nhật", img: `${IMG}/tin-1.jpg` },
+    { name: "CN Yên Thổ", kind: "Xe đạp, xe đạp điện, xe 50cc", address: "Yên Thổ - Yên Mô - Ninh Bình", hours: "Luôn mở cửa", img: `${IMG}/dich-vu-2.jpg` },
+    { name: "CN 876 Nguyễn Công Trứ", kind: "Xe đạp, xe đạp điện, xe 50cc", address: "876 Nguyễn Công Trứ - P. Ninh Sơn - TP Hoa Lư - Ninh Bình", hours: "Luôn mở cửa", img: `${IMG}/tin-1.jpg` },
   ],
 };
 
@@ -72,12 +74,12 @@ export const NEWS_SECTIONS = [
 // Studio backdrop behind the big photo of each brand's showcase on the home page (desktop), as on the source site.
 // `dark` backdrops get white text. Brands that are not listed keep the plain white background.
 export const BRAND_BACKDROPS: Record<string, { src: string; dark?: boolean }> = {
-  honda: { src: "/sites/hungphat/bg/concrete.webp" },
-  yamaha: { src: "/sites/hungphat/bg/arches.webp" },
-  sym: { src: "/sites/hungphat/bg/wireframe.webp" },
-  suzuki: { src: "/sites/hungphat/bg/dark.webp", dark: true },
-  "xe-may-nhap-khau": { src: "/sites/hungphat/bg/concrete.webp" },
-  "xe-50cc": { src: "/sites/hungphat/bg/concrete.webp" },
-  yadea: { src: "/sites/hungphat/bg/arches.webp" },
-  "xe-dien-yamaha": { src: "/sites/hungphat/bg/arches.webp" },
+  honda: { src: "/sites/yenthoa/bg/concrete.webp" },
+  yamaha: { src: "/sites/yenthoa/bg/arches.webp" },
+  sym: { src: "/sites/yenthoa/bg/wireframe.webp" },
+  suzuki: { src: "/sites/yenthoa/bg/dark.webp", dark: true },
+  "xe-may-nhap-khau": { src: "/sites/yenthoa/bg/concrete.webp" },
+  "xe-50cc": { src: "/sites/yenthoa/bg/concrete.webp" },
+  yadea: { src: "/sites/yenthoa/bg/arches.webp" },
+  "xe-dien-yamaha": { src: "/sites/yenthoa/bg/arches.webp" },
 };

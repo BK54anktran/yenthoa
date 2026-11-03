@@ -8,7 +8,7 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 W=/tmp/yenthoa; mkdir -p "$W"; export OUT="${OUT:-$W/shots}"; mkdir -p "$OUT"
-SOCK=/tmp/yt-my8.sock; DB=xemay_hungphat_db; PORT=3000; ADMIN_PW='YenThoa2026demo'
+SOCK=/tmp/yt-my8.sock; DB=yenthoa_db; PORT=3000; ADMIN_PW='YenThoa2026demo'
 # Cloud có thể đặt sẵn DB_* trỏ MySQL ngoài; DATABASE_URL=mysql:// được ưu tiên nên các biến đó không ảnh hưởng.
 export DATABASE_URL="mysql://yenthoa:yenthoa123@127.0.0.1:3306/$DB"
 

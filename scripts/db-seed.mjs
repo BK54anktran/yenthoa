@@ -40,11 +40,11 @@ if (!connectionFromEnv()) {
   if (!env.found) {
     console.error(`- Không có file ${envFile}`);
     console.error("  Tạo file tên đúng là .env.local (không có đuôi .txt) trong thư mục này, nội dung một dòng:");
-    console.error("  DATABASE_URL=mysql://root:MAT_KHAU@127.0.0.1:3306/xemay_hungphat_db");
+    console.error("  DATABASE_URL=mysql://root:MAT_KHAU@127.0.0.1:3306/yenthoa_db");
     console.error("  (Trong File Explorer, bật 'File name extensions' để chắc file không bị thành .env.local.txt)");
   } else {
     console.error(`- Đã đọc ${envFile} (mã hoá: ${env.enc}). Các biến tìm thấy: ${env.keys.join(", ") || "(không có)"}`);
-    console.error("  Cần DATABASE_URL=mysql://USER:MATKHAU@127.0.0.1:3306/xemay_hungphat_db, hoặc DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.");
+    console.error("  Cần DATABASE_URL=mysql://USER:MATKHAU@127.0.0.1:3306/yenthoa_db, hoặc DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.");
   }
   process.exit(1);
 }
@@ -64,7 +64,7 @@ try {
   console.error("\nSeed thất bại:", e?.message ?? e);
   if (code === "ECONNREFUSED") console.error("-> MySQL chưa chạy hoặc sai cổng/host trong DATABASE_URL.");
   if (code === "ER_ACCESS_DENIED_ERROR") console.error("-> Sai user hoặc mật khẩu. Mật khẩu có @ : / # thì phải mã hoá trong URL (@ thành %40).");
-  if (code === "ER_BAD_DB_ERROR") console.error("-> Database chưa tồn tại. Tạo trước: CREATE DATABASE xemay_hungphat_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+  if (code === "ER_BAD_DB_ERROR") console.error("-> Database chưa tồn tại. Tạo trước: CREATE DATABASE yenthoa_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
 } finally {
   try {
     await getPool().end();

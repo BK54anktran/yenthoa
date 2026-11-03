@@ -49,7 +49,7 @@ export async function fetchImage(rawUrl: string): Promise<{ data: Buffer; name: 
     if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Chỉ tải được link http hoặc https.");
     if (url.username || url.password) throw new Error("Link ảnh không hợp lệ.");
     await assertPublic(url.hostname);
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(15_000), headers: { accept: "image/*", "user-agent": "XeMayHungPhat-ImageImport/1.0" } });
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(15_000), headers: { accept: "image/*", "user-agent": "YenThoa-ImageImport/1.0" } });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get("location");
       if (!loc) throw new Error("Trang ảnh chuyển hướng sai.");

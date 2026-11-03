@@ -14,7 +14,7 @@ Lệnh in ra 3 dòng `ADMIN_USER`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`. Gi�
 
 ## Các bước trên Vibe Host
 
-1. **Cho Vibe Host đọc repo.** Repo `SeaTurtle169/xemay-hungphat` đang ở chế độ riêng tư. Tài khoản GitHub được kết nối với
+1. **Cho Vibe Host đọc repo.** Repo GitHub của dự án đang ở chế độ riêng tư. Tài khoản GitHub được kết nối với
    Vibe Host phải có quyền đọc (thêm làm collaborator) hoặc thêm mã truy cập cho repo trên giao diện Vibe Host.
    Nếu tài khoản Vibe Host mới dùng GitHub khác, có thể fork hoặc chuyển repo sang tài khoản đó.
 2. **Tạo website** từ repo, nhánh `main`. Vibe Host build bằng `Dockerfile` ở gốc repo, ứng dụng nghe cổng **3000**.

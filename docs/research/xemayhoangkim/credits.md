@@ -56,8 +56,8 @@ Dòng ghi công đã hiện ngay dưới ảnh trên trang chi tiết xe.
 
 ## Nội dung nhập từ xemayhoangkim.vn (bài viết + sản phẩm)
 
-- Nguồn: REST API công khai của xemayhoangkim.vn, nhập bằng `scripts/import-hoangkim.mjs` (xem đầu file để biết cách chạy lại).
+- Nguồn: REST API công khai của xemayhoangkim.vn, đã nhập một lần.
   Văn bản và ảnh là **của bên thứ ba**, cần xác nhận quyền sử dụng trước khi chạy thật.
-- Đã làm: đổi tên thương hiệu thành "Hùng Phát", đổi hotline, xoá khối địa chỉ/chi nhánh/liên hệ của nguồn, gỡ link về site gốc, bỏ nhóm "Tin Hoàng Kim", "Tuyển dụng", "Tin báo chí" (24 bài).
-- Ảnh trong `public/sites/hungphat/img` đã nén webp (rộng tối đa 800px). Ảnh có logo/hotline/email Hoàng Kim in trong ảnh được phát hiện bằng OCR (`scripts/detect-branded-images.py`) và đã bỏ (2.823 ảnh). Ảnh nhỏ hoặc chữ rất mờ có thể lọt, nên xem lại bằng mắt.
-- Các câu về chính sách của đại lý (bảo hành, quà tặng, trả góp, khuyến mãi) viết theo nguồn nay đọc như của Hùng Phát: cần chủ cửa hàng rà lại cho đúng thực tế.
+- Đã làm: đổi tên thương hiệu thành "Yên Thoa", đổi hotline, xoá khối địa chỉ/chi nhánh/liên hệ của nguồn, gỡ link về site gốc, bỏ nhóm "Tin Hoàng Kim", "Tuyển dụng", "Tin báo chí" (24 bài).
+- Ảnh trong `public/sites/hungphat/img` đã nén webp (rộng tối đa 800px). Ảnh có logo/hotline/email Hoàng Kim in trong ảnh được phát hiện bằng OCR (`OCR`) và đã bỏ (2.823 ảnh). Ảnh nhỏ hoặc chữ rất mờ có thể lọt, nên xem lại bằng mắt.
+- Các câu về chính sách của đại lý (bảo hành, quà tặng, trả góp, khuyến mãi) viết theo nguồn nay đọc như của Yên Thoa: cần chủ cửa hàng rà lại cho đúng thực tế.

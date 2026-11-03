@@ -166,7 +166,7 @@
     @apply font-sans;
   }
 }
-/* Imported post / product HTML (see scripts/import-hoangkim.mjs): plain tags only, no classes or inline styles */
+/* Imported post / product HTML: plain tags only, no classes or inline styles */
 .prose-content {
   font-size: 15px;
   line-height: 1.75;

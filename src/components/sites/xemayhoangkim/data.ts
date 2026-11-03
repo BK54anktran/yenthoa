@@ -1,4 +1,4 @@
-// Shop info and layout text. Posts and products live in src/content (see scripts/import-hoangkim.mjs).
+// Shop info and layout text. Posts and products live in src/content.
 
 export const telHref = (n: string) => `tel:${n.replace(/\D/g, "")}`;
 

@@ -68,12 +68,12 @@ export const NEWS_SECTIONS = [
 // Studio backdrop behind the big photo of each brand's showcase on the home page (desktop), as on the source site.
 // `dark` backdrops get white text. Brands that are not listed keep the plain white background.
 export const BRAND_BACKDROPS: Record<string, { src: string; dark?: boolean }> = {
-  honda: { src: "/sites/hungphat/bg/concrete.webp" },
-  yamaha: { src: "/sites/hungphat/bg/arches.webp" },
-  sym: { src: "/sites/hungphat/bg/wireframe.webp" },
-  suzuki: { src: "/sites/hungphat/bg/dark.webp", dark: true },
-  "xe-may-nhap-khau": { src: "/sites/hungphat/bg/concrete.webp" },
-  "xe-50cc": { src: "/sites/hungphat/bg/concrete.webp" },
-  yadea: { src: "/sites/hungphat/bg/arches.webp" },
-  "xe-dien-yamaha": { src: "/sites/hungphat/bg/arches.webp" },
+  honda: { src: "/sites/yenthoa/bg/concrete.webp" },
+  yamaha: { src: "/sites/yenthoa/bg/arches.webp" },
+  sym: { src: "/sites/yenthoa/bg/wireframe.webp" },
+  suzuki: { src: "/sites/yenthoa/bg/dark.webp", dark: true },
+  "xe-may-nhap-khau": { src: "/sites/yenthoa/bg/concrete.webp" },
+  "xe-50cc": { src: "/sites/yenthoa/bg/concrete.webp" },
+  yadea: { src: "/sites/yenthoa/bg/arches.webp" },
+  "xe-dien-yamaha": { src: "/sites/yenthoa/bg/arches.webp" },
 };

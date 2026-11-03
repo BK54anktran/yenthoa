@@ -46,7 +46,7 @@ Sinh lại `db/seed.sql` sau khi dữ liệu trong `src/content` đổi: `npm ru
 3. Vào `/admin`, đăng nhập, bấm **Nạp dữ liệu mẫu** ở trang Tổng quan (chỉ hiện khi cơ sở dữ liệu trống).
 
 Dữ liệu nằm trong hai volume: `mysql-data` (database) và `uploads` (ảnh tải lên, `/data`). **Sao lưu cả hai.**
-Sao lưu database: `docker compose exec mysql mysqldump -u hungphat -p yenthoa_db > backup.sql`.
+Sao lưu database: `docker compose exec mysql mysqldump -u yenthoa -p yenthoa_db > backup.sql`.
 
 Nếu chạy sau một proxy (Nginx, Caddy, Cloudflare...) có HTTPS, proxy phải gửi header `X-Forwarded-Proto: https`
 (hoặc đặt `COOKIE_SECURE=true`) để cookie đăng nhập có cờ Secure.

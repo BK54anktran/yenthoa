@@ -1,0 +1,19 @@
+{
+  "slug": "xe-may-dien-dk-crea-mono",
+  "name": "Xe Máy Điện DK Crea Mono",
+  "brand": "dk",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 15990000,
+  "priceMax": 15990000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-dk-crea-mono-1.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-dk-crea-mono-1.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": "<h2><strong>Xe Máy Điện DK Crea Mono</strong></h2>"
+}

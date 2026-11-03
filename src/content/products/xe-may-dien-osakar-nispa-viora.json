@@ -1,0 +1,132 @@
+{
+  "slug": "xe-may-dien-osakar-nispa-viora",
+  "name": "Xe Máy Điện Osakar Nispa Viora",
+  "brand": "osakar",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 19000000,
+  "priceMax": 19000000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-1.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-1.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [
+    {
+      "title": "Thông tin chung",
+      "items": [
+        {
+          "label": "Hãng",
+          "value": "Xe máy điện Osakar"
+        },
+        {
+          "label": "Xuất xứ",
+          "value": "Nhật Bản"
+        },
+        {
+          "label": "Bảo hành Khung xe",
+          "value": "3 năm"
+        },
+        {
+          "label": "Bảo hành Ác quy, Pin",
+          "value": "1 năm"
+        },
+        {
+          "label": "Motor",
+          "value": "2 năm"
+        }
+      ]
+    },
+    {
+      "title": "Ngoại hình",
+      "items": [
+        {
+          "label": "Chiều dài x Chiều rộng x Chiều cao",
+          "value": "1640mm x 640mm x 1200mm"
+        },
+        {
+          "label": "Chiều cao yên xe",
+          "value": "760 mm"
+        },
+        {
+          "label": "Đường kính bánh xe",
+          "value": "Lốp: 406mm - Vành: 254mm"
+        },
+        {
+          "label": "Mầu sắc có bán",
+          "value": "Đủ màu"
+        }
+      ]
+    },
+    {
+      "title": "Đặc điểm",
+      "items": [
+        {
+          "label": "Động cơ",
+          "value": "1450W"
+        },
+        {
+          "label": "Vận hành",
+          "value": "Tự động hoàn toàn"
+        },
+        {
+          "label": "Vận tốc tối da",
+          "value": "50km/h"
+        },
+        {
+          "label": "Tải trọng",
+          "value": "220kg"
+        },
+        {
+          "label": "Trọng lượng xe",
+          "value": "~85kg"
+        },
+        {
+          "label": "Quãng đường tối đa đi được khi pin đầy",
+          "value": "80-100km/ 1 lần sạc đầy pin"
+        },
+        {
+          "label": "Sạc điện",
+          "value": "Công nghệ sạc tự động ngắt khi acquy đầy"
+        },
+        {
+          "label": "Thời gian sạc",
+          "value": "10-12h"
+        },
+        {
+          "label": "Phanh trước/sau",
+          "value": "Phanh đĩa trước, phanh kéo sau"
+        },
+        {
+          "label": "Loại acquy",
+          "value": "5 acquy 20A"
+        },
+        {
+          "label": "Lốp",
+          "value": "Liền săm"
+        },
+        {
+          "label": "Bảo vệ tụt áp",
+          "value": "42 + / - 1.0V"
+        },
+        {
+          "label": "Bảo vệ dòng",
+          "value": "14 + / -2.0A"
+        },
+        {
+          "label": "Phụ kiện đi kèm theo xe",
+          "value": "Gương, Sạc, Khóa báo động chống trộm"
+        }
+      ]
+    }
+  ],
+  "shortHtml": "<p>Không cần phải chạy theo những mẫu xe quá đắt đỏ hay sở hữu hàng loạt công nghệ phức tạp, nhiều người dùng hiện nay đang có xu hướng tìm đến những chiếc xe điện “vừa đủ”. Xe Máy Điện Osakar Nispa Viora là mẫu xe không cố gắng tạo sự khác biệt bằng vẻ ngoài hào nhoáng, mà tập trung vào những giá trị thực tế: dễ điều khiển, vận hành ổn định và phù hợp với nhịp sống đô thị.</p>\n<p>Giữa rất nhiều mẫu xe điện trong cùng phân khúc, Xe Máy Điện Osakar Nispa Viora vẫn tạo được dấu ấn riêng nhờ cách hoàn thiện hướng đến trải nghiệm thực tế thay vì chỉ tập trung vào thông số. Điểm dễ nhận thấy là xe được thiết kế với kích thước gọn gàng nhưng không quá nhỏ, tạo cảm giác cân đối và chắc chắn khi vận hành.</p>",
+  "html": "<p>Không cần phải chạy theo những mẫu xe quá đắt đỏ hay sở hữu hàng loạt công nghệ phức tạp, nhiều người dùng hiện nay đang có xu hướng tìm đến những chiếc xe điện “vừa đủ”. Xe Máy Điện Osakar Nispa Viora là mẫu xe không cố gắng tạo sự khác biệt bằng vẻ ngoài hào nhoáng, mà tập trung vào những giá trị thực tế: dễ điều khiển, vận hành ổn định và phù hợp với nhịp sống đô thị.</p>\n<p><img src=\"/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-7.webp\" alt=\"Xe Máy Điện Osakar Nispa Viora\" loading=\"lazy\"></p>\n<h2><strong>Điểm khác biệt của Osakar Nispa Viora so với các đối thủ</strong></h2>\n<p>Giữa rất nhiều mẫu xe điện trong cùng phân khúc, <strong>Xe Máy Điện</strong> Osakar Nispa Viora vẫn tạo được dấu ấn riêng nhờ cách hoàn thiện hướng đến trải nghiệm thực tế thay vì chỉ tập trung vào thông số. Điểm dễ nhận thấy là xe được thiết kế với kích thước gọn gàng nhưng không quá nhỏ, tạo cảm giác cân đối và chắc chắn khi vận hành.</p>\n<p>Không giống một số mẫu xe thiên về kiểu dáng thời trang nhưng thiếu tính ổn định, Nispa Viora giữ được sự hài hòa giữa ngoại hình và cảm giác lái. Khi sử dụng trong môi trường đô thị đông đúc, xe cho thấy rõ ưu thế nhờ khả năng xoay trở linh hoạt, đặc biệt trong những tình huống như quay đầu trong ngõ nhỏ hoặc di chuyển qua bãi xe chật.</p>\n<p><img src=\"/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-8.webp\" alt=\"Xe Máy Điện Osakar Nispa Viora\" loading=\"lazy\"></p>\n<p>Một điểm khác biệt đáng chú ý khác nằm ở cách xe được tối ưu cho người dùng mới. Từ chiều cao yên, trọng lượng đến cách bố trí tay lái đều hướng đến sự dễ làm quen. Điều này giúp xe không chỉ phù hợp với người đã có kinh nghiệm mà còn thân thiện với học sinh, sinh viên hoặc người lần đầu sử dụng xe điện.</p>\n<p>Ngoài ra, khả năng vận hành êm ái cũng là yếu tố giúp mẫu xe này nổi bật. Không có cảm giác giật cục khi tăng ga, không tạo tiếng ồn lớn, mọi thứ diễn ra một cách mượt mà và dễ kiểm soát. Đây chính là điều mà nhiều người dùng thực tế đánh giá cao hơn so với những con số công suất đơn thuần.</p>\n<h2><strong>Osakar Nispa Viora có gì đáng chú ý?</strong></h2>\n<p><img src=\"/sites/yenthoa/img/sp/xe-may-dien-osakar-nispa-viora-9.webp\" alt=\"Xe Máy Điện Osakar Nispa Viora\" loading=\"lazy\"></p>\n<p>Ở phiên bản mới, Xe Máy Điện Osakar Nispa Viora đã được cải thiện ở nhiều chi tiết nhằm nâng cao trải nghiệm sử dụng lâu dài. Những nâng cấp này không quá phô trương, nhưng lại tác động trực tiếp đến cảm giác vận hành hằng ngày.</p>\n<p>Hệ thống chiếu sáng LED được tối ưu lại cho khả năng chiếu sáng rõ hơn, đồng thời tiết kiệm điện năng hơn so với thế hệ trước. Khi di chuyển vào ban đêm, ánh sáng ổn định giúp người lái quan sát tốt hơn mà không gây chói mắt cho phương tiện đối diện.</p>\n<p>Bên cạnh đó, phần khung xe cũng được gia cố chắc chắn hơn, giúp tăng độ ổn định khi chở hai người hoặc di chuyển trên mặt đường không bằng phẳng. Đây là một cải tiến quan trọng vì nó ảnh hưởng trực tiếp đến độ bền và cảm giác an toàn khi sử dụng lâu dài.</p>\n<p>Hệ thống giảm xóc cũng được tinh chỉnh để phù hợp hơn với điều kiện đường phố Việt Nam. Khi đi qua gờ giảm tốc, ổ gà hoặc đoạn đường xấu, xe hấp thụ dao động tốt hơn, hạn chế rung lắc và giúp người lái cảm thấy dễ chịu hơn.</p>\n<p>Ngoài ra, các chi tiết nhỏ như tay ga, cụm công tắc hay bề mặt sàn để chân cũng được hoàn thiện tốt hơn, mang lại cảm giác sử dụng chắc chắn và tiện lợi. Những thay đổi này tuy không quá lớn, nhưng lại góp phần tạo nên sự khác biệt rõ rệt khi sử dụng mỗi ngày.</p>\n<h2><strong>Osakar Nispa Viora cân bằng giữa sức mạnh và tiết kiệm năng lượng</strong></h2>\n<p>Xe máy điện <strong>Osakar Nispa Viora</strong> được trang bị động cơ điện có công suất phù hợp cho nhu cầu di chuyển trong đô thị. Khi vận hành, xe cho cảm giác tăng tốc mượt, không bị hụt ga hay giật cục. Điều này đặc biệt quan trọng khi di chuyển trong điều kiện giao thông đông đúc, nơi người lái cần kiểm soát tốc độ liên tục.</p>\n<p>Tốc độ tối đa của xe nằm ở mức vừa phải, đủ để di chuyển linh hoạt trong thành phố mà vẫn đảm bảo an toàn. Khi cần leo dốc nhẹ như hầm gửi xe hoặc cầu vượt, xe vẫn giữ được lực kéo ổn định, không tạo cảm giác yếu hay ì máy.</p>\n<p>Quãng đường di chuyển sau mỗi lần sạc cũng là một điểm mạnh đáng chú ý. Với khả năng đi được khoảng 80–90 km, người dùng có thể sử dụng xe trong nhiều ngày liên tục mà không cần sạc lại. Điều này không chỉ tiện lợi mà còn giúp giảm áp lực về thời gian sạc pin.</p>\n<p>Về chi phí, xe điện luôn có lợi thế rõ rệt so với xe xăng. Chi phí sạc thấp, không cần thay dầu nhớt và ít hỏng vặt giúp người dùng tiết kiệm đáng kể trong quá trình sử dụng lâu dài. Đây là yếu tố khiến nhiều người chuyển sang xe điện và gắn bó lâu dài với dòng phương tiện này.</p>\n<h2><strong>Osakar Nispa Viora xứng đáng để sở hữu</strong></h2>\n<p>Có nhiều yếu tố khiến <strong>Xe Máy Điện Osakar</strong> Nispa Viora trở thành lựa chọn đáng cân nhắc, nhưng điểm quan trọng nhất vẫn nằm ở sự phù hợp với nhu cầu thực tế. Xe không cố gắng trở thành mẫu xe “mạnh nhất” hay “công nghệ nhất”, mà tập trung vào việc mang lại trải nghiệm ổn định và dễ sử dụng.</p>\n<p>Trước hết, đây là mẫu xe phù hợp với nhiều đối tượng. Từ học sinh, sinh viên đến người đi làm, bất kỳ ai cũng có thể sử dụng xe một cách dễ dàng mà không cần mất nhiều thời gian làm quen. Việc không yêu cầu bằng lái trong nhiều trường hợp cũng giúp xe tiếp cận được nhiều người dùng hơn.</p>\n<p>Bên cạnh đó, thiết kế gọn gàng giúp xe linh hoạt trong mọi tình huống di chuyển hằng ngày. Dù là đi học, đi làm hay đi chợ, xe đều đáp ứng tốt mà không tạo cảm giác bất tiện. Độ bền và chi phí sử dụng thấp cũng là những yếu tố quan trọng. Khi sử dụng trong thời gian dài, xe không phát sinh quá nhiều chi phí bảo trì, giúp người dùng tiết kiệm đáng kể so với các phương tiện truyền thống.</p>\n<p>Cuối cùng, cảm giác lái êm ái và ổn định chính là điều khiến nhiều người gắn bó với mẫu xe này. Không ồn ào, không phức tạp, chỉ đơn giản là một chiếc xe hoạt động đúng như kỳ vọng mỗi ngày.</p>"
+}

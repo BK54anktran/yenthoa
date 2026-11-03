@@ -37,14 +37,20 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
 
 export const BRANDS = [
   { id: "honda", name: "Honda" },
-  { id: "yamaha", name: "Yamaha" },
-  { id: "sym", name: "SYM" },
-  { id: "suzuki", name: "Suzuki" },
-  { id: "yadea", name: "Yadea" },
+  { id: "dibao", name: "Dibao" },
+  { id: "tailg", name: "Tailg" },
+  { id: "osakar", name: "Osakar" },
+  { id: "dk", name: "DK" },
+  { id: "victoria", name: "Victoria" },
+  { id: "motor-thai", name: "Motor Thái" },
+  { id: "viet-thai", name: "Việt Thái" },
+  { id: "ally", name: "Ally" },
   { id: "xe-50cc", name: "Xe 50cc" },
-  { id: "xe-may-nhap-khau", name: "Xe nhập khẩu" },
-  { id: "xe-dien-yamaha", name: "Xe điện" },
+  { id: "khac", name: "Hãng khác" },
 ];
+
+// brands listed in the "Xe điện" dropdown of the header; the rest go in "Xe máy"
+export const ELECTRIC_BRANDS = new Set(["dibao", "tailg", "osakar", "dk", "khac"]);
 
 export const PRODUCT_TYPES = [
   { id: "xe-so", name: "Xe số" },

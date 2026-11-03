@@ -1,0 +1,24 @@
+{
+  "slug": "xe-may-50cc-wave-ally",
+  "name": "Xe Máy 50cc Wave Ally",
+  "brand": "xe-50cc",
+  "types": [
+    "xe-so"
+  ],
+  "price": 16200000,
+  "priceMax": 16200000,
+  "img": "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-1.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-1.webp",
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-50cc-wave-ally-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": ""
+}

@@ -148,7 +148,8 @@ export async function Footer() {
         </Reveal>
       </div>
       <div className="mx-auto max-w-[1250px] px-4 pb-2 pt-6">
-        <p aria-hidden className="select-none whitespace-nowrap text-[min(15.6vw,213px)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]">{BRAND}</p>
+        {/* the size was tuned for a 9-letter name (15.6vw, 213px max): scale it with the length of the shop name so it always fits */}
+        <p aria-hidden className="select-none whitespace-nowrap font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]" style={{ fontSize: `min(${(140.4 / BRAND.length).toFixed(2)}vw, ${Math.round(1917 / BRAND.length)}px)` }}>{BRAND}</p>
       </div>
       <p className="mx-auto max-w-[1250px] px-4 py-5 text-[13px] uppercase text-neutral-300">© 2026 {BRAND}</p>
     </footer>

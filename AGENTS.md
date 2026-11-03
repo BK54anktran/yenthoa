@@ -105,3 +105,5 @@ Website bán xe máy (Next.js + MySQL + trang `/admin`), triển khai trên Vibe
     dùng nhập phải qua `src/lib/sanitize.ts`; truy vấn MySQL luôn dùng tham số, không nối chuỗi; không in bí mật (`ADMIN_PASSWORD_HASH`,
     `SESSION_SECRET`, mật khẩu DB) ra log hay commit.
 11. **Giới hạn sử dụng:** khi mức dùng chạm ~99%, dừng, commit / push phần đã xong và tóm tắt tiến độ cho chủ dự án.
+12. **Hỏi advisor (Opus) ở 3 thời điểm:** trước khi chốt kế hoạch, khi gặp cùng một lỗi lần thứ hai, và trước khi báo một việc là xong.
+    Gọi subagent `advisor` (`.claude/agents/advisor.md`, model Opus, chỉ đọc) kèm kế hoạch / lỗi / thay đổi cần xem; làm theo hoặc nêu lý do không làm theo.

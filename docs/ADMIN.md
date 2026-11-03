@@ -5,7 +5,7 @@ Các file JSON trong `src/content` chỉ còn là **dữ liệu mẫu** để n�
 
 ## Dựng database chỉ bằng một file: `db/seed.sql`
 
-`db/seed.sql` tự tạo database `xemay_hungphat_db` (utf8mb4), các bảng và toàn bộ dữ liệu mẫu (113 bài, 64 xe cùng 361 phiên bản/màu, banner, thông tin cửa hàng).
+`db/seed.sql` tự tạo database `xemay_hungphat_db` (utf8mb4), các bảng và toàn bộ dữ liệu mẫu (232 bài, 64 xe cùng 361 phiên bản/màu, banner, thông tin cửa hàng).
 Chạy trực tiếp trong MySQL:
 
 ```sql

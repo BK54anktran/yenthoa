@@ -55,9 +55,9 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
   }
   if (lower.endsWith(".pdf")) {
     const { pdfToHtml } = await import("./pdf-to-html.ts");
-    const html = await pdfToHtml(data);
+    const { html, warnings } = await pdfToHtml(data, (png, name) => addImage(png, name));
     if (!html) throw new Error("PDF này không có chữ để lấy (có thể là ảnh quét). Hãy chèn từng trang thành ảnh.");
-    return { html, warnings: [] };
+    return { html, warnings };
   }
   throw new Error("Chỉ nhận tệp Word (.docx) hoặc PDF.");
 }

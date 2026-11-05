@@ -1,20 +1,57 @@
 // Reads a PDF the way a person would: line by line, using where each piece of text sits and how big it is.
 // Bigger text becomes a heading, a larger gap between lines starts a new paragraph, text split in columns on one line becomes
-// a table row, and a line that starts with a bullet or a number becomes a list item. Pictures and page layout are not kept.
+// a table row, and a line that starts with a bullet or a number becomes a list item. A picture goes where it sits on the page
+// (between the lines above and below it), with its size and its place (left, centre, right). Colours and page layout are not kept.
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 type Item = { str: string; x: number; y: number; w: number; h: number };
 type Line = { cells: string[]; text: string; size: number; y: number; page: number; list?: "ul" | "ol" };
+type Pic = { key: string; page: number; y: number; width: number; align: "left" | "center" | "right"; src?: string; raw?: { data: Uint8ClampedArray; width: number; height: number; channels: number } };
+// turns the pixels of a picture into a file the site can keep (a /uploads/<id> link)
+export type SaveImage = (png: Buffer, name: string) => Promise<string>;
+const px = (pt: number) => Math.round((pt * 96) / 72);
 
 const BULLET = /^[•·▪●○◦‣-]$/;
 const NUMBERED = /^(\d{1,2}[.)])\s+(?=\S)/;
 
-export async function pdfToHtml(data: Buffer): Promise<string> {
-  const { getDocumentProxy } = await import("unpdf");
+export async function pdfToHtml(data: Buffer, saveImage?: SaveImage): Promise<{ html: string; warnings: string[] }> {
+  const { getDocumentProxy, getResolvedPDFJS } = await import("unpdf");
   const pdf = await getDocumentProxy(new Uint8Array(data));
+  const { OPS, Util } = await getResolvedPDFJS();
   const lines: Line[] = [];
+  const pics: Pic[] = [];
+  const warnings: string[] = [];
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
-    const content = await (await pdf.getPage(pageNo)).getTextContent();
+    const page = await pdf.getPage(pageNo);
+    const pageWidth = page.getViewport({ scale: 1 }).width;
+    // where each picture is painted: follow the transformation matrix through the page's drawing operations
+    if (saveImage) {
+      const ops = await page.getOperatorList();
+      let ctm = [1, 0, 0, 1, 0, 0];
+      const stack: number[][] = [];
+      for (let i = 0; i < ops.fnArray.length; i++) {
+        const fn = ops.fnArray[i];
+        const args = ops.argsArray[i] as unknown[];
+        if (fn === OPS.save) stack.push(ctm);
+        else if (fn === OPS.restore) ctm = stack.pop() ?? ctm;
+        else if (fn === OPS.transform) ctm = Util.transform(ctm, args as number[]);
+        else if (fn === OPS.paintFormXObjectBegin) {
+          stack.push(ctm);
+          if (Array.isArray(args[0])) ctm = Util.transform(ctm, args[0] as number[]);
+        } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() ?? ctm;
+        else if (fn === OPS.paintImageXObject) {
+          const width = Math.hypot(ctm[0], ctm[1]);
+          const height = Math.hypot(ctm[2], ctm[3]);
+          const mid = ctm[4] + width / 2;
+          pics.push({ key: String(args[0]), page: pageNo, y: ctm[5] + height, width, align: mid < pageWidth * 0.4 ? "left" : mid > pageWidth * 0.6 ? "right" : "center" });
+        }
+      }
+      for (const pic of pics.filter((p) => p.page === pageNo && !p.raw)) {
+        const img = await new Promise<{ data?: Uint8ClampedArray; width?: number; height?: number } | undefined>((resolve) => (pic.key.startsWith("g_") ? page.commonObjs : page.objs).get(pic.key, resolve));
+        if (img?.data && img.width && img.height) pic.raw = { data: img.data, width: img.width, height: img.height, channels: img.data.length / (img.width * img.height) };
+      }
+    }
+    const content = await page.getTextContent();
     const items: Item[] = [];
     for (const it of content.items) {
       if (!("str" in it) || !it.str.trim()) continue;
@@ -52,7 +89,7 @@ export async function pdfToHtml(data: Buffer): Promise<string> {
       lines.push({ cells, text: cells.join(" "), size, y: row[0].y, page: pageNo, list });
     }
   }
-  if (!lines.length) return "";
+  if (!lines.length && !pics.length) return { html: "", warnings };
 
   // the usual text size (by amount of text) and the usual gap between two lines of it
   const bySize = new Map<number, number>();
@@ -78,8 +115,37 @@ export async function pdfToHtml(data: Buffer): Promise<string> {
     if (list) out.push(`<${list.tag}>${list.items.map((x) => `<li>${esc(x)}</li>`).join("")}</${list.tag}>`);
     list = null;
   };
-  lines.forEach((l, i) => {
-    const prev = lines[i - 1];
+  // pictures are stored once each, then placed among the lines by their height on the page
+  const stored = new Map<string, string>();
+  const sharp = pics.length ? (await import("sharp")).default : null;
+  for (const p of pics) {
+    if (!p.raw || !sharp || !saveImage) continue;
+    const k = `${p.page}:${p.key}`;
+    if (!stored.has(k)) {
+      try {
+        const png = await sharp(Buffer.from(p.raw.data), { raw: { width: p.raw.width, height: p.raw.height, channels: p.raw.channels as 1 | 3 | 4 } }).png().toBuffer();
+        stored.set(k, await saveImage(png, `pdf-trang-${p.page}`));
+      } catch (e) {
+        stored.set(k, "");
+        warnings.push(`Không lưu được một ảnh ở trang ${p.page}: ${e instanceof Error ? e.message : "lỗi ảnh"}`);
+      }
+    }
+    p.src = stored.get(k) || undefined;
+  }
+  const seq: (Line | Pic)[] = [];
+  for (let pg = 1; pg <= pdf.numPages; pg++) {
+    const here: (Line | Pic)[] = [...lines.filter((l) => l.page === pg), ...pics.filter((p) => p.page === pg && p.src)];
+    here.sort((a, b) => ("key" in b ? b.y : b.y + b.size) - ("key" in a ? a.y : a.y + a.size));
+    seq.push(...here);
+  }
+  seq.forEach((l, i) => {
+    if ("key" in l) {
+      flush();
+      const margin = l.align === "left" ? "margin-left:0;margin-right:auto" : l.align === "right" ? "margin-left:auto;margin-right:0" : "margin-left:auto;margin-right:auto";
+      out.push(`<p><img loading="lazy" alt="" src="${l.src}" style="width:${px(l.width)}px;max-width:100%;${margin}" /></p>`);
+      return;
+    }
+    const prev = seq[i - 1] && !("key" in seq[i - 1]) ? (seq[i - 1] as Line) : undefined;
     const big = l.size >= body * 1.2 && l.text.length < 160;
     if (big) {
       flush();
@@ -100,5 +166,5 @@ export async function pdfToHtml(data: Buffer): Promise<string> {
     }
   });
   flush();
-  return out.join("\n");
+  return { html: out.join("\n"), warnings };
 }

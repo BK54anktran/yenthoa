@@ -83,6 +83,17 @@ CREATE TABLE IF NOT EXISTS hero_slides (
     KEY ix_slides (active, sort)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS api_keys (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    key_prefix VARCHAR(16) NOT NULL,
+    key_hash CHAR(64) NOT NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP NULL,
+    UNIQUE KEY uq_api_keys_hash (key_hash)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 119 posts
 INSERT IGNORE INTO posts (slug, title, date, section, excerpt, img, html, published) VALUES ('1-em-autum-26-cho-chi-khach-dong-thai-mua-lam-qua-cho-co-con-2026-01-26', '1 em Autum 26 cho chị khách Đồng Thái mua làm quà cho cô con gái', '2026-01-26', 'tin-tuc', '1 em Autum 26 cho chị khách Đồng Thái mua làm quà cho cô con gái. Các Bác cứ chọn xe còn lại em lo hết nhé!', '/sites/yenthoa/logo.png', '<p>1 em Autum 26 cho chị khách Đồng Thái mua làm quà cho cô con gái.</p><p>Các Bác cứ chọn xe còn lại em lo hết nhé!</p>', 1);
 INSERT IGNORE INTO posts (slug, title, date, section, excerpt, img, html, published) VALUES ('1-em-cup-50cc-anh-trai-mua-ve-di-lam-2026-01-17', '1 em Cup 50cc anh trai mua về đi làm', '2026-01-17', 'tin-tuc', '1 em Cup 50cc anh trai mua về đi làm. Cám ơn Anh đã tin tưởng và ủng hộ', '/sites/yenthoa/logo.png', '<p>1 em Cup 50cc anh trai mua về đi làm. Cám ơn Anh đã tin tưởng và ủng hộ</p>', 1);

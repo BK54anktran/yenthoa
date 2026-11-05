@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Boxes, ExternalLink, FileText, Home, Image as ImageIcon, LayoutDashboard, LayoutTemplate, LogOut, Menu, Package, Settings, Store, X } from "lucide-react";
+import { Boxes, ExternalLink, FileText, Home, Image as ImageIcon, LayoutDashboard, LayoutTemplate, LogOut, Menu, Package, Plug, Settings, Store, X } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 
 type Item = { href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> };
@@ -28,6 +28,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/cai-dat", label: "Thông tin cửa hàng", icon: Store },
     ],
   },
+  { title: "Hệ thống", items: [{ href: "/admin/ket-noi", label: "Kết nối", icon: Plug }] },
 ];
 
 // vertical admin menu: a sidebar from md up, a button that opens it on phones

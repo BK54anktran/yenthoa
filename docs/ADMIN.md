@@ -68,6 +68,7 @@ Nếu chạy sau một proxy (Nginx, Caddy, Cloudflare...) có HTTPS, proxy ph�
 | Bộ sưu tập | Nhóm xe có tên và trang riêng `/bo-suu-tap/tên` (như Collections của Shopify). **Chọn tay** từng xe và sắp thứ tự, hoặc **tự động theo luật** (hãng, loại xe, khoảng giá) để xe mới phù hợp tự vào; có đếm sẵn số xe khớp luật. Dùng được ở trang chủ (mục xe: "Hoặc lấy xe từ một bộ sưu tập") và menu (mục con "các bộ sưu tập xe"). Trang `/bo-suu-tap` liệt kê tất cả bộ sưu tập đang hiện. Khối "Bộ sưu tập" ở cuối trang chủ hiện tất cả hoặc chỉ những bộ bạn chọn và sắp thứ tự, theo kiểu **giới thiệu** (mỗi bộ một khối ảnh xe lớn trên ảnh nền riêng của bộ đó, dải xe bên dưới) hoặc kiểu **thẻ ảnh**. Ảnh nền của từng bộ chọn ở trang sửa bộ sưu tập (mục trang chủ lấy xe từ một bộ sưu tập cũng dùng nền của bộ đó). Mỗi bộ có **mô tả chi tiết** (HTML) hiện ở trang `/bo-suu-tap/tên` với nút Xem thêm. |
 | Hình ảnh | Tất cả ảnh đã tải lên: ảnh nhỏ, **tên** (sửa được bằng nút Đổi tên), dung lượng, ngày tải, mã, và **số vị trí đang dùng** (bấm để xem danh sách: bài viết, xe, banner, trang chủ, bộ sưu tập, thông tin cửa hàng). Có **ô tìm kiếm** (theo tên ảnh, mã, hoặc tên nơi đang dùng, không phân biệt dấu) và lọc đang dùng / chưa dùng. Các chỗ dùng ảnh **chỉ lưu mã** của ảnh (dạng `/uploads/<mã>`), nên đổi tên hay thay ảnh không phải sửa lại chỗ nào. Nút **Sao chép link** (dán vào ô ảnh ở nơi khác), **Thay thế** (mọi chỗ đang dùng tự hiện ảnh mới) và **Xoá** (cảnh báo nếu đang dùng). Chỉ gồm ảnh tải lên qua admin, không gồm ảnh có sẵn trong thư mục /sites. |
 | Thông tin cửa hàng | Tên, hotline, link Facebook, địa chỉ chân trang, danh sách cửa hàng |
+| Kết nối | Tạo và xoá **key** cho AI (Claude Desktop, Claude Code) kết nối vào website qua MCP, xem lần dùng cuối của từng key. Xem mục "Kết nối AI (MCP)" bên dưới |
 
 Ảnh tải lên được nén lại thành WebP (tối đa 1600px) và **xoá dữ liệu EXIF/vị trí GPS**. Tối đa 10 MB mỗi ảnh.
 
@@ -95,7 +96,7 @@ Hiện tối đa 48 xe và 30 bài. Trang này không được đưa lên Google
 - Một tài khoản duy nhất, mật khẩu lưu dạng băm scrypt trong biến môi trường, không nằm trong mã nguồn.
 - Phiên đăng nhập là cookie httpOnly có chữ ký, hết hạn sau 12 giờ. Sai mật khẩu 5 lần thì khoá 15 phút (đếm theo địa chỉ IP, trong bộ nhớ, mất khi khởi động lại).
 - Mọi trang và mọi thao tác ghi đều tự kiểm tra phiên, không chỉ dựa vào `proxy.ts`.
-- HTML khi lưu được lọc theo danh sách thẻ cho phép (không script, không `style`, không sự kiện `on...`).
+- HTML do quản trị viên nhập được **giữ nguyên** (kể cả `<script>`, `style`, `iframe`, sự kiện `on...`) theo lựa chọn của cửa hàng; chỉ người đăng nhập admin hoặc giữ một key MCP mới ghi được. Phần tóm tắt và tiêu đề luôn được rút thành chữ thường (`htmlToText`). Khung xem trước trong admin không chạy script.
 - Đổi mật khẩu: chạy lại `npm run admin:hash`, thay giá trị trong môi trường, khởi động lại ứng dụng.
 
 
@@ -132,6 +133,43 @@ Mục **Mẫu** trong menu quản trị. Một mẫu là một đoạn HTML (có
 - **Chỗ trống trong HTML:** `{{key}}` (chữ được tự thoát ký tự đặc biệt, ô *HTML* chèn nguyên văn, ảnh và link được kiểm tra), `{{#if key}}..{{else}}..{{/if}}`, `{{#unless key}}..{{/unless}}`, `{{#each danh_sach}}..{{@index}} {{@number}}..{{/each}}`, `{{_id}}` (mã riêng của từng khối, dùng cho mọi id mà script tìm để hai khối cùng mẫu không rối nhau), `{{site.products}} {{site.brands}} {{site.branches}} {{site.hotline}} {{site.name}}` (số liệu cửa hàng).
 - **Xoá mẫu:** không xoá được khi còn khối ở trang chủ đang dùng. Khối dùng mẫu đã bị xoá thì không hiện ra ngoài trang.
 - Mã: `src/lib/template.ts` (bộ máy, có thể thử bằng `npm run test:template`), `src/lib/template-samples.ts` (mẫu có sẵn), `src/lib/template-prompt.ts` (nội dung prompt).
+
+## Kết nối AI (MCP)
+
+Website có sẵn một máy chủ MCP ở `https://<tên-miền>/api/mcp` (Streamable HTTP, không giữ phiên) để AI đọc và sửa nội dung giống như trang quản trị.
+
+**Tạo key:** vào **Kết nối**, nhập tên gợi nhớ (ví dụ "Claude Desktop"), bấm **Tạo key**. Key (dạng `ytk_...`) chỉ hiện đầy đủ **một lần**, sao chép ngay. Database chỉ lưu mã băm SHA-256 của key và vài ký tự đầu để nhận ra trong danh sách; mất key thì xoá và tạo cái mới. **Tắt một key** (bấm "Đang bật" ở cột Trạng thái, bấm lại để bật) khi chưa cần dùng mà không phải xoá và tạo lại: key đang tắt bị từ chối (401, báo "Key đang tắt") và không bị tính vào lần sai key. **Xoá một key là thu hồi hẳn**: lần gọi sau của key đó bị từ chối (401). Mỗi key có cột "Dùng lần cuối". Sai key liên tiếp 5 lần thì địa chỉ đó bị khoá 15 phút (HTTP 429).
+
+**Cài vào Claude Code:**
+
+```bash
+claude mcp add --transport http yenthoa https://<tên-miền>/api/mcp --header "Authorization: Bearer <key>"
+```
+
+**Cài vào Claude Desktop** (hoặc client khác nhận cấu hình URL), thêm vào file cấu hình MCP:
+
+```json
+{"mcpServers":{"yenthoa":{"url":"https://<tên-miền>/api/mcp","headers":{"Authorization":"Bearer <key>"}}}}
+```
+
+**Cài vào ChatGPT** (chỉ có OAuth hoặc "Không xác thực", không có ô nhập key): thêm server MCP tuỳ chỉnh, chọn **Không xác thực** và dán ô **"Địa chỉ có sẵn key"** hiện ra ngay sau khi tạo key, dạng `https://<tên-miền>/api/mcp/<key>`. Lưu ý: key nằm trong địa chỉ nên có thể xuất hiện trong nhật ký của máy chủ trung gian và lịch sử ChatGPT. Hãy tạo **một key riêng cho ChatGPT**, đừng dùng chung với các thiết bị khác, và xoá key khi không dùng nữa. Cách này vẫn đi qua cùng bước kiểm tra key (sai thì 401, sai 5 lần thì khoá 15 phút).
+
+**Các công cụ (đủ quyền đọc và ghi):**
+
+| Nhóm | Công cụ |
+|---|---|
+| Tổng quan | `tong_quan` (số xe, số bài, đang ẩn, tên cửa hàng) |
+| Xe | `tim_xe`, `xem_xe`, `luu_xe` (tạo hoặc sửa), `bat_tat_xe`, `xoa_xe` |
+| Bài viết | `tim_bai_viet`, `xem_bai_viet`, `luu_bai_viet` (tạo hoặc sửa), `bat_tat_bai_viet`, `xoa_bai_viet` |
+| Cửa hàng | `xem_thong_tin_cua_hang`, `luu_thong_tin_cua_hang` |
+| Danh mục | `xem_danh_muc` (hãng, loại xe, mục tin), `luu_danh_muc` (thêm hoặc sửa, không xoá mục nào) |
+
+- Sửa (`luu_xe`, `luu_bai_viet`, `luu_thong_tin_cua_hang`): trường nào không gửi thì giữ nguyên. Mọi kiểm tra dữ liệu (hãng, mục, link ảnh, đường dẫn không trùng...) dùng đúng hàm của trang quản trị (`src/lib/admin-service.ts`).
+- Xoá (`xoa_xe`, `xoa_bai_viet`) bắt buộc gửi `confirm: true`, thiếu là bị từ chối. Không có công cụ xoá hàng loạt hay đặt lại dữ liệu.
+- Ô HTML đi qua cùng bộ lọc như trang quản trị, tức là **giữ nguyên mọi thẻ kể cả `<script>`** (xem "Bảo mật"). Người giữ key có quyền như quản trị viên, nên giữ key như mật khẩu.
+- Mỗi thao tác ghi in một dòng ra nhật ký máy chủ (`[mcp] key="<tên key>" tool=... id=...`), không bao giờ in key.
+- **Ảnh từ trang web khác** (`<img src="https://...">` trong nội dung, ảnh bìa, ảnh xe, thư viện ảnh, ảnh của dòng phiên bản) gửi trong lần gọi `luu_bai_viet` hoặc `luu_xe` được **tự tải về server** vào mục Hình ảnh và đổi thành `/uploads/<mã>`, giống như dán link vào trang quản trị. Ảnh không tải được thì giữ nguyên link và công cụ trả thêm `canh_bao_anh_khong_tai_duoc`. Chỉ xử lý các trường có trong lần gọi, nội dung đã lưu trước đó không bị tải lại. Mỗi ảnh tối đa 10 MB; server chỉ tải từ địa chỉ công khai trên internet.
+- Chưa gồm: banner, trang chủ, menu riêng, mẫu, bộ sưu tập, tải tệp ảnh từ máy lên (dùng link ảnh `https://...` hoặc đường dẫn có sẵn `/...`).
 
 ## Quy tắc ảnh (giống nhau ở mọi nơi)
 

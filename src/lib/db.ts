@@ -109,6 +109,17 @@ export const SCHEMA = [
     active TINYINT(1) NOT NULL DEFAULT 1,
     KEY ix_slides (active, sort)
   ) ${T}`,
+  // keys that let an AI client (the MCP endpoint) work on the site; only a hash of the key is stored
+  `CREATE TABLE IF NOT EXISTS api_keys (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    key_prefix VARCHAR(16) NOT NULL,
+    key_hash CHAR(64) NOT NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP NULL,
+    UNIQUE KEY uq_api_keys_hash (key_hash)
+  ) ${T}`,
 ];
 
 async function ensureColumn(pool: Pool, table: string, column: string, ddl: string): Promise<void> {
@@ -135,6 +146,7 @@ export function ensureSchema(): Promise<void> {
       await ensureColumn(pool, "hero_slides", "img_mobile", "VARCHAR(500) NULL AFTER img");
       await ensureColumn(pool, "hero_slides", "fit", "VARCHAR(10) NOT NULL DEFAULT 'cover' AFTER img_mobile");
       await ensureColumn(pool, "hero_slides", "dim", "TINYINT(1) NOT NULL DEFAULT 1 AFTER link");
+      await ensureColumn(pool, "api_keys", "active", "TINYINT(1) NOT NULL DEFAULT 1 AFTER key_hash");
       await syncMediaFiles(pool).catch((e) => console.error("syncMediaFiles:", e instanceof Error ? e.message : e));
     })().catch((e) => {
       g.__hpSchema = undefined; // retry on the next request

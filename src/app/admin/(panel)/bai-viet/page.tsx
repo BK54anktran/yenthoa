@@ -23,15 +23,19 @@ export default async function PostsAdmin({ searchParams }: { searchParams: Promi
       <div className="overflow-x-auto bg-white">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-            <tr><th className="p-3">Tiêu đề</th><th className="p-3">Mục</th><th className="p-3">Ngày</th><th className="p-3">Trạng thái</th><th className="p-3" /></tr>
+            <tr><th className="p-3">ID</th><th className="p-3">Tiêu đề</th><th className="hidden p-3 sm:table-cell">Mục</th><th className="hidden p-3 sm:table-cell">Ngày</th><th className="p-3">Trạng thái</th><th className="p-3" /></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-neutral-100">
-                <td className="p-3"><Link href={`/admin/bai-viet/${r.id}`} className="font-medium hover:text-[#de0000]">{r.title}</Link></td>
-                <td className="p-3 whitespace-nowrap">{sectionName(taxonomy, r.section)}</td>
-                <td className="p-3 whitespace-nowrap">{formatDate(r.date)}</td>
+                <td className="p-3 whitespace-nowrap font-mono text-xs text-neutral-600">{r.id}</td>
                 <td className="p-3">
+                  <Link href={`/admin/bai-viet/${r.id}`} className="font-medium hover:text-[#de0000]">{r.title}</Link>
+                  <span className="mt-1 block text-xs text-neutral-500 sm:hidden">{sectionName(taxonomy, r.section)} · {formatDate(r.date)}</span>
+                </td>
+                <td className="hidden p-3 whitespace-nowrap sm:table-cell">{sectionName(taxonomy, r.section)}</td>
+                <td className="hidden p-3 whitespace-nowrap sm:table-cell">{formatDate(r.date)}</td>
+                <td className="p-3 whitespace-nowrap">
                   <form action={togglePostAction}>
                     <input type="hidden" name="id" value={r.id} />
                     <button className={r.published ? "text-green-700 hover:underline" : "text-neutral-400 hover:underline"}>{r.published ? "Đang hiện" : "Đang ẩn"}</button>
@@ -47,7 +51,7 @@ export default async function PostsAdmin({ searchParams }: { searchParams: Promi
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-neutral-500">Không có bài nào.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-neutral-500">Không có bài nào.</td></tr>}
           </tbody>
         </table>
       </div>

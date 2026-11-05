@@ -2,6 +2,7 @@
 
 import { assertAdmin } from "@/lib/auth";
 import { addImage } from "@/lib/media";
+import { DOCUMENT_MAX_BYTES, documentToHtml } from "@/lib/import-document";
 import { MAX_UPLOAD_BYTES } from "@/lib/uploads";
 
 export type UploadResult = { url?: string; error?: string };
@@ -27,5 +28,19 @@ export async function importImageAction(url: string): Promise<UploadResult> {
     return { url: await addImage(data, name) };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không tải được ảnh." };
+  }
+}
+
+// reads a Word or PDF file and returns the HTML to put in an HTML field
+export async function importDocumentAction(f: FormData): Promise<{ html?: string; error?: string }> {
+  await assertAdmin();
+  const file = f.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Chưa chọn tệp." };
+  if (file.size > DOCUMENT_MAX_BYTES) return { error: "Tệp quá lớn (tối đa 10 MB)." };
+  try {
+    const html = await documentToHtml(Buffer.from(await file.arrayBuffer()), file.name);
+    return html.trim() ? { html } : { error: "Tệp không có nội dung." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Không đọc được tệp." };
   }
 }

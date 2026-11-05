@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import { importImageAction, uploadImageAction } from "@/app/admin/upload";
+import { importDocumentAction, importImageAction, uploadImageAction } from "@/app/admin/upload";
 import { checkImageFile, IMAGE_URL, UPLOAD_LINK } from "@/lib/image-rules";
 import { btnGhost, inputCls } from "./ui";
 
@@ -40,6 +40,7 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
   const [err, setErr] = useState("");
   const own = useSyncExternalStore(() => () => {}, () => window.location.origin, () => ""); // this website's address (empty while rendering on the server)
   const area = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
 
   const update = (v: string) => {
     setValue(v);
@@ -72,6 +73,23 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
       setBusy((n) => n - 1);
     }
     if (tags.length) insertAtCursor(tags.join("\n"));
+  }
+
+  // a Word or PDF file becomes HTML at the cursor; a picture file (a design exported as PNG or JPG) is uploaded like a dropped photo
+  async function importFiles(files: File[]) {
+    const docs = files.filter((f) => /\.(docx|pdf)$/i.test(f.name));
+    await addImages(files);
+    const range: [number, number] = [area.current?.selectionStart ?? value.length, area.current?.selectionEnd ?? value.length];
+    for (const f of docs) {
+      setErr("");
+      setBusy((n) => n + 1);
+      const fd = new FormData();
+      fd.set("file", f);
+      const r = await importDocumentAction(fd).catch(() => ({ html: undefined, error: "không gửi được tệp lên server, thử lại." }));
+      setBusy((n) => n - 1);
+      if (r.html) insertAtCursor(r.html, range);
+      else setErr(`${f.name}: ${r.error ?? "không đọc được tệp."}`);
+    }
   }
 
   // downloads photos from other websites into the image manager: address -> /uploads/<id> (the ones that failed are left out)
@@ -125,6 +143,12 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
           ))}
         </div>
         {mode === "html" && (
+          <>
+            <input ref={picker} type="file" multiple hidden accept=".docx,.pdf,image/*" onChange={(e) => { void importFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            <button type="button" onClick={() => picker.current?.click()} disabled={busy > 0} className={btnGhost}>Nhập từ tệp</button>
+          </>
+        )}
+        {mode === "html" && (
           <span className="text-xs text-neutral-500">{busy > 0 ? `Đang tải ${busy} ảnh...` : "Dán link ảnh (Sao chép link ở mục Hình ảnh) để chèn ảnh."}</span>
         )}
       </div>
@@ -171,9 +195,9 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
         onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
         onDrop={(e) => {
           const files = Array.from(e.dataTransfer.files);
-          if (files.some((f) => f.type.startsWith("image/"))) {
+          if (files.some((f) => f.type.startsWith("image/") || /\.(docx|pdf)$/i.test(f.name))) {
             e.preventDefault();
-            void addImages(files);
+            void importFiles(files);
           }
         }}
         rows={rows}

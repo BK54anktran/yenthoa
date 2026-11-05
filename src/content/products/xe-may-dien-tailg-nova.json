@@ -1,0 +1,24 @@
+{
+  "slug": "xe-may-dien-tailg-nova",
+  "name": "Xe Máy Điện Tailg Nova",
+  "brand": "tailg",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 16400000,
+  "priceMax": 16400000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-main.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-main.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-nova-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": ""
+}

@@ -90,8 +90,8 @@ export function CategorySection({ cat }: { cat: ShowcaseCategory }) {
       style={style}
       className={`shrink-0 select-none border-b-2 pb-2 transition-opacity duration-500 text-center text-[13px] uppercase ${selected ? "border-[#de0000] font-bold text-[#de0000]" : "border-transparent text-neutral-700 hover:text-black"}`}
     >
-      <span className="relative mx-auto mb-1 block h-16 w-24 overflow-hidden bg-neutral-100">
-        <Image src={x.img} alt="" fill sizes="96px" draggable={false} className="object-cover" />
+      <span className="relative mx-auto mb-1 block h-16 w-24 overflow-hidden">
+        <Image src={x.img} alt="" fill sizes="96px" draggable={false} className="object-contain" />
       </span>
       <span className="block truncate">{x.name}</span>
     </button>

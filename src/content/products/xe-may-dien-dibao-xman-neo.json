@@ -1,0 +1,24 @@
+{
+  "slug": "xe-may-dien-dibao-xman-neo",
+  "name": "Xe Máy Điện Dibao Xman Neo",
+  "brand": "dibao",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 15490000,
+  "priceMax": 15490000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-main.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-main.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-dibao-xman-neo-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": ""
+}

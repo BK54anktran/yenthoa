@@ -1,0 +1,24 @@
+{
+  "slug": "xe-may-dien-tailg-t61",
+  "name": "Xe Máy Điện Tailg T61",
+  "brand": "tailg",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 28840000,
+  "priceMax": 28840000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-main.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-main.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-tailg-t61-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": ""
+}

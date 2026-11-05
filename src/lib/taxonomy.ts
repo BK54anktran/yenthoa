@@ -1,4 +1,4 @@
-import { BRANDS, NEWS_SECTIONS, PRODUCT_TYPES } from "./defaults.ts";
+import { BRANDS, ELECTRIC_BRANDS, NEWS_SECTIONS, PRODUCT_TYPES } from "./defaults.ts";
 
 // The lists the shop sorts things by: brands and product types for the cars, sections for the news.
 // The admin edits them; until it is saved the site uses the defaults from defaults.ts.
@@ -21,7 +21,7 @@ export const TAXONOMY_KEY = "taxonomy";
 
 export function defaultTaxonomy(): Taxonomy {
   return {
-    brands: BRANDS.map((b) => ({ id: b.id, name: b.name, active: true, menu: b.id === "yadea" || b.id === "xe-dien-yamaha" ? "xe-dien" : "xe-may" })),
+    brands: BRANDS.map((b) => ({ id: b.id, name: b.name, active: true, menu: ELECTRIC_BRANDS.has(b.id) ? "xe-dien" : "xe-may" })),
     types: PRODUCT_TYPES.map((t) => ({ id: t.id, name: t.name, active: true })),
     sections: NEWS_SECTIONS.map((s) => ({ id: s.slug, name: s.name, active: true, menu: s.slug === "thi-truong" || s.slug === "xe-may" })),
   };

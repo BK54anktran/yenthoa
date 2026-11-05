@@ -36,7 +36,7 @@ Lệnh in ra 3 dòng `ADMIN_USER`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`. Gi�
 6. **Triển khai.** Mở `https://<tên-miền>/admin/login`, đăng nhập, ở trang Tổng quan bấm **Nạp dữ liệu mẫu** (chỉ hiện khi database trống).
    Cách khác, không cần bấm nút: import file [`db/seed.sql`](../db/seed.sql) vào database MySQL của website (phpMyAdmin hoặc
    `mysql`). Vì database đã do Vibe Host tạo, hãy **xoá hai dòng `CREATE DATABASE` và `USE` ở đầu file** trước khi import. File tự tạo bảng và nạp
-   113 bài, 64 xe (361 phiên bản/màu), banner, thông tin cửa hàng; import lại không ghi đè dữ liệu đã sửa.
+   119 bài, 113 xe, banner, thông tin cửa hàng; import lại không ghi đè dữ liệu đã sửa.
 7. Vào **Thông tin cửa hàng** đổi tên, hotline, Facebook, địa chỉ; vào **Banner** và **Sản phẩm** thay ảnh thật.
 
 ## Cập nhật sau này

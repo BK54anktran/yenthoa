@@ -20,7 +20,7 @@ export const services = [
 
 export const footerMenu = [
   { label: "Xe máy", href: "/xe-may" },
-  { label: "Xe điện", href: "/xe-may?nhom=yadea,xe-dien-yamaha" },
+  { label: "Xe điện", href: "/xe-may?nhom=dibao,tailg,osakar,dk,khac" },
   { label: "Dịch vụ", href: "/tin-tuc" },
   { label: "Tin tức", href: "/tin-tuc" },
   { label: "Liên hệ", href: "/lien-he" },

@@ -1,0 +1,24 @@
+{
+  "slug": "xe-may-dien-xmen-victoria",
+  "name": "Xe Máy Điện Xmen Victoria",
+  "brand": "victoria",
+  "types": [
+    "xe-may-dien"
+  ],
+  "price": 15600000,
+  "priceMax": 15600000,
+  "img": "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-main.webp",
+  "gallery": [
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-main.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-2.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-3.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-4.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-5.webp",
+    "/sites/yenthoa/img/sp/xe-may-dien-xmen-victoria-6.webp"
+  ],
+  "colors": [],
+  "variants": [],
+  "specs": [],
+  "shortHtml": "",
+  "html": ""
+}

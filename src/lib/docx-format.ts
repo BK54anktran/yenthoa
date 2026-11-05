@@ -6,7 +6,8 @@ import JSZip from "jszip";
 // Best effort: when something in the file looks unusual, the caller falls back to the file as it was.
 const EMU_PER_PX = 9525;
 
-export type DocxFormat = { data: Buffer; colors: string[]; imageWidths: number[] };
+export type DocxImage = { width: number; align: "left" | "center" | "right" };
+export type DocxFormat = { data: Buffer; colors: string[]; images: DocxImage[] };
 
 const colorName = (hex: string) => `Docx Color ${hex}`;
 const styleId = (hex: string) => `DocxColor${hex}`;
@@ -23,7 +24,7 @@ export async function readDocxFormat(input: Buffer): Promise<DocxFormat> {
   const zip = await JSZip.loadAsync(input);
   const docFile = zip.file("word/document.xml");
   const stylesFile = zip.file("word/styles.xml");
-  if (!docFile || !stylesFile) return { data: input, colors: [], imageWidths: [] };
+  if (!docFile || !stylesFile) return { data: input, colors: [], images: [] };
   let doc = await docFile.async("string");
   let styles = await stylesFile.async("string");
 
@@ -41,7 +42,11 @@ export async function readDocxFormat(input: Buffer): Promise<DocxFormat> {
   };
 
   const used = new Set<string>();
+  const images: DocxImage[] = []; // every picture in document order: its width and where its paragraph sits (left, centre, right)
   doc = doc.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (para) => {
+    const jc = /<w:pPr>[\s\S]*?<w:jc\b[^>]*\bw:val="(\w+)"/.exec(para)?.[1];
+    const align = jc === "center" ? "center" : jc === "right" || jc === "end" ? "right" : "left";
+    for (const m of para.matchAll(/<w:drawing>[\s\S]*?<wp:extent\b[^>]*\bcx="(\d+)"[\s\S]*?<a:blip\b[^>]*\br:embed="[^"]+"/g)) images.push({ width: Math.round(Number(m[1]) / EMU_PER_PX), align });
     const paraColor = styleColor(/<w:pPr>[\s\S]*?<w:pStyle\b[^>]*\bw:val="([^"]+)"/.exec(para)?.[1]);
     return para.replace(/(<w:r\b[^>]*>)([\s\S]*?)<\/w:r>/g, (run, open: string, body: string) => {
       if (!/<w:t\b/.test(body)) return run;
@@ -55,7 +60,6 @@ export async function readDocxFormat(input: Buffer): Promise<DocxFormat> {
     });
   });
 
-  const imageWidths = [...doc.matchAll(/<w:drawing>[\s\S]*?<wp:extent\b[^>]*\bcx="(\d+)"[\s\S]*?<a:blip\b[^>]*\br:embed="[^"]+"/g)].map((m) => Math.round(Number(m[1]) / EMU_PER_PX));
 
   const colors = [...used];
   if (colors.length) {
@@ -64,7 +68,7 @@ export async function readDocxFormat(input: Buffer): Promise<DocxFormat> {
     zip.file("word/document.xml", doc);
     zip.file("word/styles.xml", styles);
   }
-  return { data: colors.length ? await zip.generateAsync({ type: "nodebuffer" }) : input, colors, imageWidths };
+  return { data: colors.length ? await zip.generateAsync({ type: "nodebuffer" }) : input, colors, images };
 }
 
 export const colorStyleMap = (colors: string[]): string[] => colors.map((c) => `r[style-name='${colorName(c)}'] => span.dc-${c}`);

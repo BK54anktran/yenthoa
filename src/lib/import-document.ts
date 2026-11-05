@@ -30,6 +30,9 @@ function paragraphsOf(text: string): string[] {
 
 export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 
+// the page centres every picture in a post: put it where Word has it
+const MARGIN = { left: "margin-left:0;margin-right:auto", center: "margin-left:auto;margin-right:auto", right: "margin-left:auto;margin-right:0" } as const;
+
 export type ImportedDocument = { html: string; warnings: string[] };
 
 export async function documentToHtml(data: Buffer, fileName: string): Promise<ImportedDocument> {
@@ -38,7 +41,7 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
     const mammoth = (await import("mammoth")).default;
     const warnings: string[] = [];
     // text colours and the size of each picture are not kept by mammoth: read them from the file itself
-    const fmt: DocxFormat = await readDocxFormat(data).catch(() => ({ data, colors: [], imageWidths: [] }));
+    const fmt: DocxFormat = await readDocxFormat(data).catch(() => ({ data, colors: [], images: [] }));
     let imageNo = 0;
     const result = await mammoth.convertToHtml(
       { buffer: fmt.data },
@@ -46,12 +49,12 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
         styleMap: colorStyleMap(fmt.colors),
         // a picture that cannot be stored is left out and reported, never dropped silently
         convertImage: mammoth.images.imgElement(async (image) => {
-          const width = fmt.imageWidths[imageNo++];
+          const pic = fmt.images[imageNo++];
           try {
             if (/emf|wmf/i.test(image.contentType)) throw new Error("Word lưu ảnh này dạng vẽ (EMF/WMF), trình duyệt không hiển thị được. Hãy dán lại dạng ảnh PNG hoặc JPG.");
             const buf = await image.readAsBuffer();
             const src = await addImage(buf, `${fileName.replace(/\.docx$/i, "")}.${image.contentType.split("/")[1] ?? "png"}`);
-            return width > 0 ? { src, style: `width:${width}px;max-width:100%` } : { src };
+            return pic && pic.width > 0 ? { src, style: `width:${pic.width}px;max-width:100%;${MARGIN[pic.align]}` } : { src };
           } catch (e) {
             warnings.push(e instanceof Error ? e.message : "không lưu được ảnh");
             return { src: "", "data-failed": "1" };

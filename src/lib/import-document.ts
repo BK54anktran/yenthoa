@@ -1,3 +1,4 @@
+import { applyColorClasses, colorStyleMap, readDocxFormat, type DocxFormat } from "./docx-format.ts";
 import { addImage } from "./media.ts";
 
 // Turns an uploaded Word (.docx) or PDF file into HTML for the HTML fields of the admin.
@@ -36,15 +37,21 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
   if (lower.endsWith(".docx")) {
     const mammoth = (await import("mammoth")).default;
     const warnings: string[] = [];
+    // text colours and the size of each picture are not kept by mammoth: read them from the file itself
+    const fmt: DocxFormat = await readDocxFormat(data).catch(() => ({ data, colors: [], imageWidths: [] }));
+    let imageNo = 0;
     const result = await mammoth.convertToHtml(
-      { buffer: data },
+      { buffer: fmt.data },
       {
+        styleMap: colorStyleMap(fmt.colors),
         // a picture that cannot be stored is left out and reported, never dropped silently
         convertImage: mammoth.images.imgElement(async (image) => {
+          const width = fmt.imageWidths[imageNo++];
           try {
             if (/emf|wmf/i.test(image.contentType)) throw new Error("Word lưu ảnh này dạng vẽ (EMF/WMF), trình duyệt không hiển thị được. Hãy dán lại dạng ảnh PNG hoặc JPG.");
             const buf = await image.readAsBuffer();
-            return { src: await addImage(buf, `${fileName.replace(/\.docx$/i, "")}.${image.contentType.split("/")[1] ?? "png"}`) };
+            const src = await addImage(buf, `${fileName.replace(/\.docx$/i, "")}.${image.contentType.split("/")[1] ?? "png"}`);
+            return width > 0 ? { src, style: `width:${width}px;max-width:100%` } : { src };
           } catch (e) {
             warnings.push(e instanceof Error ? e.message : "không lưu được ảnh");
             return { src: "", "data-failed": "1" };
@@ -52,7 +59,7 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
         }),
       },
     );
-    const html = result.value.replace(/<img [^>]*data-failed="1"[^>]*>/g, "").replace(/<p>\s*<\/p>/g, "").replace(/<img /g, '<img loading="lazy" ');
+    const html = applyColorClasses(result.value).replace(/<img [^>]*data-failed="1"[^>]*>/g, "").replace(/<p>\s*<\/p>/g, "").replace(/<img /g, '<img loading="lazy" ');
     return { html, warnings: [...new Set(warnings)] };
   }
   if (lower.endsWith(".pdf")) {

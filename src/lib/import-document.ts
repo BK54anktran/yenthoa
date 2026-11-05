@@ -29,20 +29,31 @@ function paragraphsOf(text: string): string[] {
 
 export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 
-export async function documentToHtml(data: Buffer, fileName: string): Promise<string> {
+export type ImportedDocument = { html: string; warnings: string[] };
+
+export async function documentToHtml(data: Buffer, fileName: string): Promise<ImportedDocument> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".docx")) {
     const mammoth = (await import("mammoth")).default;
+    const warnings: string[] = [];
     const result = await mammoth.convertToHtml(
       { buffer: data },
       {
+        // a picture that cannot be stored is left out and reported, never dropped silently
         convertImage: mammoth.images.imgElement(async (image) => {
-          const buf = await image.readAsBuffer();
-          return { src: await addImage(buf, `${fileName.replace(/\.docx$/i, "")}.${image.contentType.split("/")[1] ?? "png"}`) };
+          try {
+            if (/emf|wmf/i.test(image.contentType)) throw new Error("Word lưu ảnh này dạng vẽ (EMF/WMF), trình duyệt không hiển thị được. Hãy dán lại dạng ảnh PNG hoặc JPG.");
+            const buf = await image.readAsBuffer();
+            return { src: await addImage(buf, `${fileName.replace(/\.docx$/i, "")}.${image.contentType.split("/")[1] ?? "png"}`) };
+          } catch (e) {
+            warnings.push(e instanceof Error ? e.message : "không lưu được ảnh");
+            return { src: "", "data-failed": "1" };
+          }
         }),
       },
     );
-    return result.value.replace(/<img /g, '<img loading="lazy" ');
+    const html = result.value.replace(/<img [^>]*data-failed="1"[^>]*>/g, "").replace(/<p>\s*<\/p>/g, "").replace(/<img /g, '<img loading="lazy" ');
+    return { html, warnings: [...new Set(warnings)] };
   }
   if (lower.endsWith(".pdf")) {
     const { extractText, getDocumentProxy } = await import("unpdf");
@@ -50,7 +61,7 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<st
     const { text } = await extractText(pdf, { mergePages: true });
     const paragraphs = paragraphsOf(text);
     if (!paragraphs.length) throw new Error("PDF này không có chữ để lấy (có thể là ảnh quét). Hãy chèn từng trang thành ảnh.");
-    return paragraphs.map((p) => `<p>${esc(p)}</p>`).join("\n");
+    return { html: paragraphs.map((p) => `<p>${esc(p)}</p>`).join("\n"), warnings: [] };
   }
   throw new Error("Chỉ nhận tệp Word (.docx) hoặc PDF.");
 }

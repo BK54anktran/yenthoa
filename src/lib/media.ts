@@ -61,7 +61,9 @@ const baseName = (n: string) => n.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/\s+/
 // a new photo: the file, its row, and the reference other places should store
 export async function addImage(input: Buffer, fileName: string): Promise<string> {
   const { id, rel } = await storeImage(input);
-  await exec("INSERT INTO media (id, name, file) VALUES (?, ?, ?)", [id, baseName(fileName) || id, rel]);
+  // the very first database call after a server start also registers the files already in the folder (syncMediaFiles),
+  // including the one just written, so the row may exist already
+  await exec("INSERT INTO media (id, name, file) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name)", [id, baseName(fileName) || id, rel]);
   invalidateMedia();
   return refOf(id);
 }

@@ -85,10 +85,12 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
       setBusy((n) => n + 1);
       const fd = new FormData();
       fd.set("file", f);
-      const r = await importDocumentAction(fd).catch(() => ({ html: undefined, error: "không gửi được tệp lên server, thử lại." }));
+      const r = await importDocumentAction(fd).catch(() => ({ html: undefined, warnings: undefined, error: "không gửi được tệp lên server, thử lại." }));
       setBusy((n) => n - 1);
-      if (r.html) insertAtCursor(r.html, range);
-      else setErr(`${f.name}: ${r.error ?? "không đọc được tệp."}`);
+      if (r.html) {
+        insertAtCursor(r.html, range);
+        if (r.warnings?.length) setErr(`${f.name}: ${r.warnings.join(" · ")}`);
+      } else setErr(`${f.name}: ${r.error ?? "không đọc được tệp."}`);
     }
   }
 

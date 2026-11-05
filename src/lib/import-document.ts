@@ -33,6 +33,15 @@ export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 // the page centres every picture in a post: put it where Word has it
 const MARGIN = { left: "margin-left:0;margin-right:auto", center: "margin-left:auto;margin-right:auto", right: "margin-left:auto;margin-right:0" } as const;
 
+// the title of a post is the page's <h1>, and the page's own style starts at <h2>: Word's headings go one level down
+const HEADING_MAP = [
+  "p[style-name='Title'] => h2:fresh",
+  "p[style-name='heading 1'] => h2:fresh",
+  "p[style-name='heading 2'] => h3:fresh",
+  "p[style-name='heading 3'] => h4:fresh",
+  "p[style-name='heading 4'] => h4:fresh",
+];
+
 export type ImportedDocument = { html: string; warnings: string[] };
 
 export async function documentToHtml(data: Buffer, fileName: string): Promise<ImportedDocument> {
@@ -46,7 +55,7 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
     const result = await mammoth.convertToHtml(
       { buffer: fmt.data },
       {
-        styleMap: colorStyleMap(fmt.colors),
+        styleMap: [...HEADING_MAP, ...colorStyleMap(fmt.colors)],
         // a picture that cannot be stored is left out and reported, never dropped silently
         convertImage: mammoth.images.imgElement(async (image) => {
           const pic = fmt.images[imageNo++];

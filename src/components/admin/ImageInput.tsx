@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { uploadImageAction } from "@/app/admin/upload";
+import { isWebLink, UPLOAD_LINK } from "@/lib/image-rules";
+import { useImageIntake } from "./image-intake";
 import { btnGhost, inputCls } from "./ui";
 
 // Text field for an image path plus an upload button. Works uncontrolled (name + defaultValue, for
-// plain forms) or controlled (value + onChange).
+// plain forms) or controlled (value + onChange). Same rules as every other picture field (lib/image-rules.ts):
+// a copied picture (Ctrl+V) or a dropped file is uploaded, a link to another website's picture is downloaded.
 export function ImageInput({ name, defaultValue = "", value, onChange, placeholder = "/uploads/... hoặc https://..." }: {
   name?: string;
   defaultValue?: string;
@@ -15,33 +17,65 @@ export function ImageInput({ name, defaultValue = "", value, onChange, placehold
   placeholder?: string;
 }) {
   const [inner, setInner] = useState(defaultValue);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
   const file = useRef<HTMLInputElement>(null);
+  const { busy, err, uploadFiles, resolveLinks } = useImageIntake();
   const v = value ?? inner;
   const set = (x: string) => (onChange ? onChange(x) : setInner(x));
+  const loading = busy > 0;
 
-  async function upload(files: FileList | null) {
-    if (!files?.[0]) return;
-    setBusy(true);
-    setErr("");
-    const fd = new FormData();
-    fd.set("file", files[0]);
-    const r = await uploadImageAction(fd);
-    setBusy(false);
-    if (r.url) set(r.url);
-    else setErr(r.error ?? "Tải ảnh thất bại.");
+  async function upload(files: File[]) {
+    const [url] = await uploadFiles(files);
+    if (url) set(url);
     if (file.current) file.current.value = "";
   }
 
+  async function bring(link: string) {
+    const [out] = await resolveLinks([link]);
+    if (out) set(out);
+  }
+
+  // an outside link still in the box (not one of ours): the button downloads it
+  const outside = isWebLink(v) && !UPLOAD_LINK.test(v.trim());
+
   return (
-    <div>
+    <div
+      onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
+      onDrop={(e) => {
+        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+        if (!files.length) return;
+        e.preventDefault();
+        void upload(files);
+      }}
+    >
       <div className="flex gap-2">
-        <input name={name} value={v} onChange={(e) => set(e.target.value)} maxLength={500} placeholder={placeholder} className={inputCls} />
-        <button type="button" onClick={() => file.current?.click()} disabled={busy} className={`${btnGhost} shrink-0`}>
-          {busy ? "Đang tải..." : "Tải ảnh lên"}
+        <input
+          name={name}
+          value={v}
+          onChange={(e) => set(e.target.value)}
+          onPaste={(e) => {
+            const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+            if (files.length) {
+              e.preventDefault();
+              void upload(files);
+              return;
+            }
+            const text = e.clipboardData.getData("text").trim();
+            if (!isWebLink(text)) return;
+            e.preventDefault();
+            set(text);
+            void bring(text);
+          }}
+          onBlur={() => {
+            if (!loading && outside) void bring(v);
+          }}
+          maxLength={500}
+          placeholder={placeholder}
+          className={inputCls}
+        />
+        <button type="button" onClick={() => (outside ? void bring(v) : file.current?.click())} disabled={loading} className={`${btnGhost} shrink-0`}>
+          {loading ? "Đang tải..." : outside ? "Tải ảnh về" : "Tải ảnh lên"}
         </button>
-        <input ref={file} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files)} />
+        <input ref={file} type="file" accept="image/*" className="hidden" onChange={(e) => void upload(Array.from(e.target.files ?? []))} />
       </div>
       {err && <p role="alert" className="mt-1 text-xs text-[#de0000]">{err}</p>}
       {v && /^(\/|https:)/.test(v) && (

@@ -101,7 +101,10 @@ export const SCHEMA = [
     title VARCHAR(200) NOT NULL,
     sub VARCHAR(300) NOT NULL DEFAULT '',
     img VARCHAR(500) NOT NULL,
+    img_mobile VARCHAR(500) NULL,
+    fit VARCHAR(10) NOT NULL DEFAULT 'cover',
     link VARCHAR(500) NULL,
+    dim TINYINT(1) NOT NULL DEFAULT 1,
     sort INT NOT NULL DEFAULT 0,
     active TINYINT(1) NOT NULL DEFAULT 1,
     KEY ix_slides (active, sort)
@@ -129,6 +132,9 @@ export function ensureSchema(): Promise<void> {
       await ensureColumn(pool, "products", "variants", "JSON NULL AFTER colors");
       await ensureColumn(pool, "products", "specs", "JSON NULL AFTER variants");
       await ensureColumn(pool, "hero_slides", "link", "VARCHAR(500) NULL AFTER img");
+      await ensureColumn(pool, "hero_slides", "img_mobile", "VARCHAR(500) NULL AFTER img");
+      await ensureColumn(pool, "hero_slides", "fit", "VARCHAR(10) NOT NULL DEFAULT 'cover' AFTER img_mobile");
+      await ensureColumn(pool, "hero_slides", "dim", "TINYINT(1) NOT NULL DEFAULT 1 AFTER link");
       await syncMediaFiles(pool).catch((e) => console.error("syncMediaFiles:", e instanceof Error ? e.message : e));
     })().catch((e) => {
       g.__hpSchema = undefined; // retry on the next request

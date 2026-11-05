@@ -10,7 +10,7 @@ export type Shop = {
   stores: Store[];
 };
 // link: where the banner button goes. null = never set (the site falls back to /xe-may), "" = no button.
-export type HeroSlide = { eyebrow: string; title: string; sub: string; img: string; link?: string | null };
+export type HeroSlide = { eyebrow: string; title: string; sub: string; img: string; link?: string | null; dim?: boolean; imgMobile?: string | null; fit?: "cover" | "natural" }; // fit: cover = fill the fixed frame (edges are cut), natural = the frame follows the picture's own shape (nothing is cut) // dim: a dark layer over the photo so the text reads (default on)
 
 const IMG = "/sites/xemayhoangkim/img";
 

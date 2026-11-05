@@ -8,15 +8,18 @@ import type { SlideRow } from "@/lib/admin-repo";
 import { BACKDROP_PRESETS, type HomeSection } from "@/lib/home-sections";
 import type { Collection } from "@/lib/collections";
 import { btnCls, btnGhost, inputCls } from "./ui";
+import { FactsEditor } from "./FactsEditor";
 import { HtmlEditor } from "./HtmlEditor";
 import { ImageInput } from "./ImageInput";
 import { SlideCardsEditor } from "./SlideCardsEditor";
+import { TemplateValuesForm } from "./TemplateValuesForm";
+import { defaultValues, type Template } from "@/lib/template";
 import { SlidesEditor } from "./SlidesEditor";
 
 type Brand = { id: string; name: string };
 type Product = { slug: string; name: string; brand: string };
 
-export function HomeSectionsForm({ sections: initial, slides: initialSlides, brands, products, collections }: { sections: HomeSection[]; slides: SlideRow[]; brands: Brand[]; products: Product[]; collections: Pick<Collection, "id" | "name">[] }) {
+export function HomeSectionsForm({ sections: initial, slides: initialSlides, brands, products, collections, templates }: { sections: HomeSection[]; slides: SlideRow[]; brands: Brand[]; products: Product[]; collections: Pick<Collection, "id" | "name">[]; templates: Pick<Template, "id" | "name" | "description" | "fields">[] }) {
   const [state, action, pending] = useActionState<FormState & { saved?: boolean }, FormData>(
     async (prev, f) => {
       const r = await saveHomeAction(prev, f);
@@ -35,7 +38,14 @@ export function HomeSectionsForm({ sections: initial, slides: initialSlides, bra
     setList((x) => [...x, { id, kind, image: "", link: "", name: "", collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: true }]);
     setOpenId(id);
   };
-  const set = (i: number, patch: Partial<HomeSection>) => setList((s) => s.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  // the patch may be a function of the block as it is now (needed by editors whose pictures finish uploading later)
+  const addFromTemplate = (tpl: (typeof templates)[number]) => {
+    const id = `mau-${Date.now().toString(36)}`;
+    setList((x) => [...x, { id, kind: "template", image: "", link: "", name: tpl.name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: true, templateId: tpl.id, values: defaultValues(tpl.fields) }]);
+    setOpenId(id);
+  };
+  const set = (i: number, patch: Partial<HomeSection> | ((cur: HomeSection) => Partial<HomeSection>)) =>
+    setList((s) => s.map((x, j) => (j === i ? { ...x, ...(typeof patch === "function" ? patch(x) : patch) } : x)));
   // --- drag to reorder: grab the three-line handle of a block and move it up or down (mouse or finger)
   const [dragId, setDragId] = useState<string | null>(null);
   const dragRef = useRef<string | null>(null);
@@ -102,6 +112,20 @@ export function HomeSectionsForm({ sections: initial, slides: initialSlides, bra
 
   return (
     <form action={action} data-dragging={dragId ? "1" : undefined} className="max-w-4xl space-y-4 [&[data-dragging]_details>:not(summary)]:hidden">
+      {/* the page title and the save button stay at the top of the screen while the blocks scroll (on phones: under the admin's own top bar) */}
+      <div className="sticky top-[60px] z-30 -mx-4 border-b border-neutral-200 bg-neutral-100 px-4 py-3 md:top-0 md:-mx-8 md:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold">Trang chủ</h1>
+          <div className="flex items-center gap-4">
+            {state.saved && !pending && <p role="status" className="text-sm font-medium text-green-700">Đã lưu. Trang chủ đã cập nhật.</p>}
+            <button disabled={pending} className={btnCls}>{pending ? "Đang lưu..." : "Lưu trang chủ"}</button>
+          </div>
+        </div>
+        {state.error && <p role="alert" className="mt-2 text-sm font-medium text-[#de0000]">{state.error}</p>}
+      </div>
+      <p className="max-w-3xl text-sm text-neutral-600">
+        Trang chủ gồm các mục xếp từ trên xuống: banner đầu trang, dải số liệu, các mục giới thiệu xe, banner ảnh xen giữa, khối HTML, mục từ mẫu và danh sách bộ sưu tập. Thêm mục mới, đổi tên, đổi ảnh nền, đổi thứ tự, chọn xe muốn hiện, rồi bấm Lưu trang chủ ở trên cùng.
+      </p>
       {list.map((s, i) => {
         const preset = BACKDROP_PRESETS.find((p) => p.src === s.backdrop);
         const auto = !!s.brand && s.slugs.length === 0;
@@ -145,13 +169,30 @@ export function HomeSectionsForm({ sections: initial, slides: initialSlides, bra
               <span className="min-w-0 truncate text-base font-semibold">
                 {s.name || (s.kind === "banner" ? "Banner mới" : s.kind === "html" ? "Khối HTML mới" : "Mục mới")}
                 <span className="ml-2 text-xs font-normal text-neutral-500">
-                  {s.kind === "html" ? "khối HTML" : s.kind === "slides" ? `${slides.length} ảnh chạy luân phiên` : s.kind === "collections" ? (s.slugs.length ? `${s.slugs.length} bộ sưu tập được chọn` : "tất cả bộ sưu tập") : s.kind === "banner" ? "banner ảnh" : s.brand ? (s.slugs.length ? `${s.slugs.length} xe tự chọn` : `tự động hãng ${brandName(s.brand)}`) : `${s.slugs.length} xe`}{s.active ? "" : " · đang ẩn"}
+                  {s.kind === "template" ? `mẫu: ${templates.find((t) => t.id === s.templateId)?.name ?? "đã xoá"}` : s.kind === "facts" ? `${(s.factItems ?? []).length} số liệu` : s.kind === "html" ? "khối HTML" : s.kind === "slides" ? `${slides.length} ảnh chạy luân phiên` : s.kind === "collections" ? (s.slugs.length ? `${s.slugs.length} bộ sưu tập được chọn` : "tất cả bộ sưu tập") : s.kind === "banner" ? "banner ảnh" : s.brand ? (s.slugs.length ? `${s.slugs.length} xe tự chọn` : `tự động hãng ${brandName(s.brand)}`) : `${s.slugs.length} xe`}{s.active ? "" : " · đang ẩn"}
                 </span>
               </span>
               </span>
               <span className="shrink-0 text-xs text-neutral-500"><span className="group-open:hidden">Mở rộng ▾</span><span className="hidden group-open:inline">Thu gọn ▴</span></span>
             </summary>
-            {s.kind === "html" ? (
+            {s.kind === "template" ? (
+              (() => {
+                const tpl = templates.find((t) => t.id === s.templateId);
+                if (!tpl) return <p className="text-sm text-[#de0000]">Mẫu này đã bị xoá. Mục này không hiện ra ngoài trang, bạn có thể xoá mục.</p>;
+                return (
+                  <div className="space-y-4">
+                    <p className="text-sm text-neutral-600">Mẫu <b>{tpl.name}</b>{tpl.description ? `: ${tpl.description}` : ""} Sửa mẫu ở mục Mẫu trong menu, các nơi dùng mẫu này đổi theo.</p>
+                    <label className="block text-sm font-semibold">
+                      Tên mục (chỉ để bạn nhận ra, không hiện ra ngoài)
+                      <input value={s.name} onChange={(e) => set(i, { name: e.target.value })} maxLength={80} className={`${inputCls} mt-1 font-normal`} />
+                    </label>
+                    <TemplateValuesForm fields={tpl.fields} values={s.values ?? {}} idKey={s.id} update={(fn) => set(i, (cur) => ({ values: fn(cur.values ?? {}) }))} />
+                  </div>
+                );
+              })()
+            ) : s.kind === "facts" ? (
+              <FactsEditor items={s.factItems ?? []} call={s.factCall ?? ""} onChange={(p) => set(i, p)} />
+            ) : s.kind === "html" ? (
               <div className="space-y-3">
                 <label className="block text-sm font-semibold">
                   Tên gọi trong admin (không hiện ra trang)
@@ -353,7 +394,7 @@ export function HomeSectionsForm({ sections: initial, slides: initialSlides, bra
               </label>
               <button type="button" onClick={() => setList((x) => swap(x, i, -1))} disabled={i === 0} className={btnGhost}>Lên</button>
               <button type="button" onClick={() => setList((x) => swap(x, i, 1))} disabled={i === list.length - 1} className={btnGhost}>Xuống</button>
-              {s.kind !== "slides" && s.kind !== "collections" && <button type="button" onClick={() => setList((x) => x.filter((_, j) => j !== i))} className={btnGhost}>Xoá mục</button>}
+              {s.kind !== "slides" && s.kind !== "collections" && s.kind !== "facts" && <button type="button" onClick={() => setList((x) => x.filter((_, j) => j !== i))} className={btnGhost}>Xoá mục</button>}
             </div>
           </details>
         );
@@ -362,12 +403,22 @@ export function HomeSectionsForm({ sections: initial, slides: initialSlides, bra
         <button type="button" onClick={() => add("showcase")} disabled={list.length >= 30} className={btnGhost}>+ Thêm mục xe</button>
         <button type="button" onClick={() => add("banner")} disabled={list.length >= 30} className={btnGhost}>+ Thêm banner</button>
         <button type="button" onClick={() => add("html")} disabled={list.length >= 30} className={btnGhost}>+ Thêm khối HTML</button>
+        <select
+          aria-label="Thêm từ mẫu"
+          value=""
+          disabled={list.length >= 30 || templates.length === 0}
+          onChange={(e) => {
+            const tpl = templates.find((t) => t.id === e.target.value);
+            if (tpl) addFromTemplate(tpl);
+          }}
+          className="h-[38px] border border-neutral-300 bg-white px-2 text-sm font-semibold text-neutral-700"
+        >
+          <option value="">+ Thêm từ mẫu…</option>
+          {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
       </div>
       <input type="hidden" name="sections" value={JSON.stringify(list)} />
       <input type="hidden" name="slides" value={JSON.stringify(slides)} />
-      {state.error && <p role="alert" className="text-sm font-medium text-[#de0000]">{state.error}</p>}
-      {state.saved && <p role="status" className="text-sm font-medium text-green-700">Đã lưu. Trang chủ đã cập nhật.</p>}
-      <div><button disabled={pending} className={btnCls}>{pending ? "Đang lưu..." : "Lưu trang chủ"}</button></div>
     </form>
   );
 }

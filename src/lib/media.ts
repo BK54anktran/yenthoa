@@ -42,11 +42,13 @@ export async function findUsage(): Promise<Map<string, MediaPlace[]>> {
   for (const r of await rows<{ id: number; name: string; img: string | null; gallery: unknown; variants: unknown; short_html: string; html: string }>("SELECT id, name, img, gallery, variants, short_html, html FROM products")) {
     add({ label: `Xe: ${r.name}`, href: `/admin/san-pham/${r.id}` }, r.img, r.gallery, r.variants, r.short_html, r.html);
   }
-  for (const r of await rows<{ title: string; img: string }>("SELECT title, img FROM hero_slides")) add({ label: `Banner đầu trang: ${r.title}`, href: "/admin/trang-chu" }, r.img);
+  for (const r of await rows<{ title: string; img: string; img_mobile: string | null }>("SELECT title, img, img_mobile FROM hero_slides")) add({ label: `Banner đầu trang${r.title ? `: ${r.title}` : ""}`, href: "/admin/trang-chu" }, r.img, r.img_mobile);
   for (const r of await rows<{ k: string; v: unknown }>("SELECT k, v FROM settings")) {
     if (r.k === "shop") add({ label: "Thông tin cửa hàng", href: "/admin/cai-dat" }, r.v);
     else if (r.k === "home_sections") {
       for (const s of (Array.isArray(r.v) ? r.v : []) as { name?: string }[]) add({ label: `Trang chủ: ${s.name ?? "mục"}`, href: "/admin/trang-chu" }, s);
+    } else if (r.k === "templates") {
+      for (const t of (Array.isArray(r.v) ? r.v : []) as { id?: string; name?: string }[]) add({ label: `Mẫu: ${t.name ?? t.id}`, href: `/admin/mau/${t.id}` }, t);
     } else if (r.k === "collections") {
       for (const c of (Array.isArray(r.v) ? r.v : []) as { id?: string; name?: string }[]) add({ label: `Bộ sưu tập: ${c.name ?? c.id}`, href: `/admin/bo-suu-tap/${c.id}` }, c);
     }

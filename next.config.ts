@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
       { source: "/sites/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=86400" }] },
     ];
   },
+  // Server Actions are capped at 1 MB by default, which broke every upload bigger than that (a phone photo is 3-8 MB).
+  // The image limit is 10 MB (lib/image-rules.ts), plus the rest of the form.
+  experimental: { serverActions: { bodySizeLimit: "12mb" } },
   outputFileTracingIncludes: {
     "/admin": ["./src/content/**/*"],
   },

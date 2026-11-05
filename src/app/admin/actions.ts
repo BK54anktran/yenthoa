@@ -8,10 +8,11 @@ import {
 import { exec, query, transaction } from "@/lib/db";
 import { type HeroSlide, type Shop, type Store } from "@/lib/defaults";
 import { taxonomyUsage } from "@/lib/admin-repo";
-import { getCollections, getTaxonomy } from "@/lib/repo";
+import { getAllTemplates, getCollections, getTaxonomy } from "@/lib/repo";
 import { TAXONOMY_KEY, type BrandMenu, type Taxonomy } from "@/lib/taxonomy";
 import { MAX_DEPTH, MAX_NODES, MENU_KEY, type MenuNode } from "@/lib/menu";
-import { SETTING_KEY, MAX_CARDS, type CornerCard, type HomeSection } from "@/lib/home-sections";
+import { cleanValues } from "@/lib/template";
+import { SETTING_KEY, MAX_CARDS, MAX_FACTS, type CornerCard, type FactItem, type HomeSection } from "@/lib/home-sections";
 import { cleanHtml, htmlToText } from "@/lib/sanitize";
 import { seedAll } from "@/lib/seed";
 import type { Variant } from "@/lib/products";
@@ -190,7 +191,7 @@ export async function saveShopAction(_: FormState, f: FormData): Promise<FormSta
   return {};
 }
 
-type Slide = HeroSlide & { link: string; active: boolean };
+type Slide = HeroSlide & { link: string; dim: boolean; imgMobile: string; fit: "cover" | "natural"; active: boolean };
 function parseSlides(f: FormData): { error: string } | { slides: Slide[] } {
   const raw = parseJson<(Partial<HeroSlide> & { active?: boolean })[]>(f, "slides");
   if (!Array.isArray(raw) || raw.length > 10) return { error: "Tối đa 10 banner đầu trang." };
@@ -198,11 +199,14 @@ function parseSlides(f: FormData): { error: string } | { slides: Slide[] } {
   for (const s of raw) {
     const title = clip(s.title, 200);
     const img = clip(s.img, 500);
-    if (!title) return { error: "Mỗi banner đầu trang cần có tiêu đề." };
-    if (!img || imgUrl(img) === null) return { error: `Banner "${title}": ảnh phải bắt đầu bằng / hoặc https://` };
+    // a banner that was added and never filled in (no picture, no text) is left out instead of stopping the save
+    if (!img && !title && !clip(s.sub, 300) && !clip(s.eyebrow, 200) && !clip(s.imgMobile, 500)) continue;
+    if (!img || imgUrl(img) === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: ảnh phải bắt đầu bằng / hoặc https://` };
+    const imgMobile = clip(s.imgMobile, 500);
+    if (imgUrl(imgMobile) === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: ảnh trên điện thoại phải bắt đầu bằng / hoặc https://` };
     const link = linkUrl(clip(s.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
-    if (link === null) return { error: `Banner "${title}": đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
-    slides.push({ eyebrow: clip(s.eyebrow, 200), title, sub: clip(s.sub, 300), img, link, active: s.active !== false });
+    if (link === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+    slides.push({ eyebrow: clip(s.eyebrow, 200), title, sub: clip(s.sub, 300), img, imgMobile, fit: s.fit === "natural" ? "natural" : "cover", link, dim: s.dim !== false, active: s.active !== false });
   }
   return { slides };
 }
@@ -214,6 +218,8 @@ async function parseSections(f: FormData): Promise<{ error: string } | { section
   const sections: HomeSection[] = [];
   const used = new Set<string>();
   for (const r of raw) {
+    // a block that was added and never filled in at all is left out instead of stopping the save
+    if (!clip(r.name, 80) && ((r.kind === "banner" && !clip(r.image, 500) && !clip(r.link, 500)) || (r.kind === "showcase" && !clip(r.brand, 60) && !clip(r.collection, 120) && !(Array.isArray(r.slugs) && r.slugs.length)))) continue;
     const name = clip(r.name, 80) || (r.kind === "html" ? "Khối HTML" : "");
     if (!name) return { error: "Mỗi mục cần có tên." };
     const banner = r.kind === "banner";
@@ -238,6 +244,30 @@ async function parseSections(f: FormData): Promise<{ error: string } | { section
       }
       if (cardsMode === "custom" && cards.length === 0) return { error: "Chọn kiểu thẻ tự tạo thì cần ít nhất một thẻ (hoặc đổi sang tự động / ẩn)." };
       sections.push({ id, kind: "slides", image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, cardsMode, cards });
+      continue;
+    }
+    if (r.kind === "template") {
+      const tpl = (await getAllTemplates()).find((x) => x.id === r.templateId);
+      if (!tpl) return { error: `Mục "${clip(r.name, 80) || "mẫu"}": mẫu không còn tồn tại.` };
+      const cv = cleanValues(tpl.fields, r.values, { html: cleanHtml, image: (s) => imgUrl(s), link: (s) => linkUrl(s) });
+      if ("error" in cv) return { error: `Mục "${name || tpl.name}": ${cv.error}` };
+      sections.push({ id, kind: "template", image: "", link: "", name: name || tpl.name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, templateId: tpl.id, values: cv.values });
+      continue;
+    }
+    if (r.kind === "facts") {
+      if (sections.some((x) => x.kind === "facts")) return { error: "Chỉ được có một mục Dải số liệu." };
+      const rawItems = Array.isArray(r.factItems) ? r.factItems : [];
+      if (rawItems.length > MAX_FACTS) return { error: `Tối đa ${MAX_FACTS} số liệu.` };
+      const factItems: FactItem[] = [];
+      for (const x of rawItems) {
+        const auto = x?.auto === "products" || x?.auto === "brands" || x?.auto === "branches" ? x.auto : "";
+        const label = clip(x?.label, 40);
+        const value = clip(x?.value, 12);
+        if (!label) return { error: "Mỗi số liệu cần có chữ mô tả (ví dụ \"hãng xe\")." };
+        if (!auto && !value) return { error: `Số liệu "${label}": chọn cách tự đếm hoặc nhập số.` };
+        factItems.push({ label, value: auto ? "" : value, auto });
+      }
+      sections.push({ id, kind: "facts", image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, factItems, factCall: clip(r.factCall, 80) });
       continue;
     }
     if (r.kind === "html") {
@@ -285,7 +315,7 @@ export async function saveHomeAction(_: FormState, f: FormData): Promise<FormSta
   await transaction(async (run) => {
     await run("DELETE FROM hero_slides");
     for (const [i, x] of s.slides.entries()) {
-      await run("INSERT INTO hero_slides (eyebrow, title, sub, img, link, sort, active) VALUES (?,?,?,?,?,?,?)", [x.eyebrow, x.title, x.sub, x.img, x.link, i, x.active ? 1 : 0]);
+      await run("INSERT INTO hero_slides (eyebrow, title, sub, img, img_mobile, fit, link, dim, sort, active) VALUES (?,?,?,?,?,?,?,?,?,?)", [x.eyebrow, x.title, x.sub, x.img, x.imgMobile || null, x.fit, x.link, x.dim ? 1 : 0, i, x.active ? 1 : 0]);
     }
     await run("INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [SETTING_KEY, JSON.stringify(c.sections)]);
   });
@@ -371,14 +401,6 @@ export async function saveTaxonomyAction(_: FormState, f: FormData): Promise<For
   });
   refresh();
   return {};
-}
-
-// back to one block per brand
-export async function resetHomeSectionsAction(): Promise<void> {
-  await assertAdmin();
-  await exec("DELETE FROM settings WHERE k = ?", [SETTING_KEY]);
-  refresh();
-  redirect("/admin/trang-chu");
 }
 
 // ---------------------------------------------------------------- first run

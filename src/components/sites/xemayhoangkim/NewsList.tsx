@@ -43,7 +43,7 @@ function Card({ a, priority, taxonomy }: { a: PostSummary; priority?: boolean; t
               className="object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
-            <Image src="/sites/yenthoa/logo.png" alt="" fill sizes="300px" className="bg-white object-contain p-8" />
+            <Image src="/sites/xemayhoangkim/logo.jpg" alt="" fill sizes="300px" className="bg-white object-contain p-8" />
           )}
         </div>
       </Link>

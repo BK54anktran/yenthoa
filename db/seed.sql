@@ -74,7 +74,10 @@ CREATE TABLE IF NOT EXISTS hero_slides (
     title VARCHAR(200) NOT NULL,
     sub VARCHAR(300) NOT NULL DEFAULT '',
     img VARCHAR(500) NOT NULL,
+    img_mobile VARCHAR(500) NULL,
+    fit VARCHAR(10) NOT NULL DEFAULT 'cover',
     link VARCHAR(500) NULL,
+    dim TINYINT(1) NOT NULL DEFAULT 1,
     sort INT NOT NULL DEFAULT 0,
     active TINYINT(1) NOT NULL DEFAULT 1,
     KEY ix_slides (active, sort)

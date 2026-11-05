@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Boxes, ExternalLink, FileText, Home, Image as ImageIcon, LayoutDashboard, LogOut, Menu, Package, Settings, Store, X } from "lucide-react";
+import { Boxes, ExternalLink, FileText, Home, Image as ImageIcon, LayoutDashboard, LayoutTemplate, LogOut, Menu, Package, Settings, Store, X } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 
 type Item = { href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> };
@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "Giao diện",
     items: [
       { href: "/admin/trang-chu", label: "Trang chủ", icon: Home },
+      { href: "/admin/mau", label: "Mẫu", icon: LayoutTemplate },
       { href: "/admin/danh-muc", label: "Danh mục", icon: Settings },
       { href: "/admin/cai-dat", label: "Thông tin cửa hàng", icon: Store },
     ],

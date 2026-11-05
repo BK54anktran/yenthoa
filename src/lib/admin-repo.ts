@@ -62,11 +62,11 @@ export async function dashboardCounts() {
   return { posts: Number(p.total), postsHidden: Number(p.hidden ?? 0), products: Number(x.total), productsHidden: Number(x.hidden ?? 0), slides: Number(s.total) };
 }
 
-export type SlideRow = { eyebrow: string; title: string; sub: string; img: string; link: string; active: boolean };
+export type SlideRow = { eyebrow: string; title: string; sub: string; img: string; imgMobile: string; fit: "cover" | "natural"; link: string; dim: boolean; active: boolean };
 export async function getAllSlides(): Promise<SlideRow[]> {
-  const rows = await query<Omit<SlideRow, "link" | "active"> & { link: string | null; active: number }>("SELECT eyebrow, title, sub, img, link, active FROM hero_slides ORDER BY sort, id");
+  const rows = await query<Omit<SlideRow, "imgMobile" | "fit" | "link" | "dim" | "active"> & { imgMobile: string | null; fit: string; link: string | null; dim: number; active: number }>("SELECT eyebrow, title, sub, img, img_mobile AS imgMobile, fit, link, dim, active FROM hero_slides ORDER BY sort, id");
   // a banner that never had a link keeps the site default (/xe-may) until the admin saves it
-  return rows.map((r) => ({ ...r, link: r.link ?? "/xe-may", active: !!r.active }));
+  return rows.map((r) => ({ ...r, imgMobile: r.imgMobile ?? "", fit: r.fit === "natural" ? "natural" : "cover", link: r.link ?? "/xe-may", dim: !!r.dim, active: !!r.active }));
 }
 
 // how many products / posts use each brand, type and news section (a used one cannot be deleted)

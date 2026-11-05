@@ -9,21 +9,27 @@ import { getLatestPosts } from "@/lib/repo";
 import { getShop } from "@/lib/shop";
 import { Reveal } from "./Reveal";
 
-// real figures from the shop's own data, on a flat dark field right under the banner
-export function Facts({ items, hotline }: { items: { n: number; label: string }[]; hotline: string }) {
+// figures on a flat dark field right under the banner: counted from the shop's own data or typed in the admin
+export function Facts({ items, call, hotline }: { items: { value: string; label: string }[]; call: string; hotline: string }) {
+  if (items.length === 0 && !hotline) return null;
   return (
-    <section aria-label="Số liệu cửa hàng" className="bg-[#2b2b2b] text-white">
-      <div className="mx-auto grid max-w-[1250px] gap-x-4 gap-y-8 px-4 py-12 grid-cols-3 md:gap-x-8 md:py-20 lg:grid-cols-[repeat(3,1fr)_1.4fr]">
+    <section aria-label="Yên Thoa trong vài con số" className="bg-[#2b2b2b] text-white">
+      <div
+        className="mx-auto grid max-w-[1250px] gap-x-4 gap-y-8 px-4 py-12 [grid-template-columns:var(--m)] md:gap-x-8 md:py-20 lg:[grid-template-columns:var(--cols)]"
+        style={{ "--m": `repeat(${Math.min(Math.max(items.length, 1), 3)}, minmax(0, 1fr))`, "--cols": `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr)) 1.4fr` } as React.CSSProperties}
+      >
         {items.map((x, k) => (
-          <Reveal key={x.label} delay={k * 90}>
-            <p className="text-[clamp(44px,8vw,112px)] font-extrabold leading-[0.9] tracking-[-0.03em] tabular-nums">{x.n}</p>
+          <Reveal key={`${x.label}-${k}`} delay={k * 90}>
+            <p className="text-[clamp(44px,8vw,112px)] font-extrabold leading-[0.9] tracking-[-0.03em] tabular-nums">{x.value}</p>
             <p className="mt-3 text-base text-neutral-200 md:text-lg">{x.label}</p>
           </Reveal>
         ))}
-        <Reveal delay={items.length * 90} className="col-span-3 lg:col-span-1">
-          <p className="text-lg text-neutral-200">Gọi để giữ xe và nhận báo giá</p>
-          <a href={telHref(hotline)} className="mt-3 inline-block bg-[#de0000] px-7 py-4 text-xl font-bold transition-transform duration-200 hover:bg-white hover:text-[#de0000] active:scale-95">{hotline}</a>
-        </Reveal>
+        {hotline && (
+          <Reveal delay={items.length * 90} className="col-span-full lg:col-span-1">
+            {call && <p className="text-lg text-neutral-200">{call}</p>}
+            <a href={telHref(hotline)} className="mt-3 inline-block bg-[#de0000] px-7 py-4 text-xl font-bold transition-transform duration-200 hover:bg-white hover:text-[#de0000] active:scale-95">{hotline}</a>
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -124,11 +130,11 @@ export async function Footer() {
           ))}
           <div className="mt-5 bg-neutral-900 p-5">
             <Image
-              src="/sites/yenthoa/logo.png"
+              src="/sites/xemayhoangkim/logo.jpg"
               alt={BRAND}
-              width={1600}
-              height={984}
-              className="mb-3 h-14 w-auto"
+              width={1494}
+              height={1064}
+              className="mb-3 h-20 w-auto rounded bg-white p-1"
             />
             <p className="font-bold uppercase">{BRAND}</p>
             <div className="mt-3 flex gap-3" aria-label="Mạng xã hội">
@@ -148,7 +154,7 @@ export async function Footer() {
         </Reveal>
       </div>
       <div className="mx-auto max-w-[1250px] px-4 pb-2 pt-6">
-        <p aria-hidden className="select-none whitespace-nowrap text-[min(15.6vw,213px)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]">{BRAND}</p>
+        <p aria-hidden className="select-none whitespace-nowrap text-[min(15.6vw,213px)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-[#de0000]">Yên Thoa</p>
       </div>
       <p className="mx-auto max-w-[1250px] px-4 py-5 text-[13px] uppercase text-neutral-300">© 2026 {BRAND}</p>
     </footer>

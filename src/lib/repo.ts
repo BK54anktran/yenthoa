@@ -8,6 +8,8 @@ import { defaultMenu, MENU_KEY, normalizeMenu, resolveMenu, type Menu, type Nav 
 import { COLLECTIONS_KEY, normalizeCollections, type Collection } from "./collections.ts";
 import { activeOnly, defaultTaxonomy, normalizeTaxonomy, TAXONOMY_KEY, type Taxonomy } from "./taxonomy.ts";
 import { normalizeSpecs, normalizeVariants } from "./variants.ts";
+import { MAX_TEMPLATES, parseTemplateJson, TEMPLATES_KEY, type Template } from "./template.ts";
+import { BUILTIN_TEMPLATES } from "./template-samples.ts";
 
 // Read side used by the public site. Only published posts / active products are returned.
 // Admin code uses its own queries (src/lib/admin-repo.ts) so it can see hidden rows too.
@@ -80,7 +82,8 @@ export async function getRelatedProducts(brand: string, slug: string, limit: num
 }
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
-  return query<HeroSlide>("SELECT eyebrow, title, sub, img, link FROM hero_slides WHERE active = 1 ORDER BY sort, id");
+  const rows = await query<Omit<HeroSlide, "dim" | "fit"> & { dim: number; fit: string }>("SELECT eyebrow, title, sub, img, img_mobile AS imgMobile, fit, link, dim FROM hero_slides WHERE active = 1 ORDER BY sort, id");
+  return rows.map((r) => ({ ...r, dim: !!r.dim, fit: r.fit === "natural" ? ("natural" as const) : ("cover" as const) }));
 }
 
 export async function getPostSections(): Promise<string[]> {
@@ -124,6 +127,25 @@ export const getNav = cache(async (): Promise<Nav> => {
 });
 
 // the product collections (hidden ones included; callers filter)
+// templates made in the admin (kept in settings), and those plus the ones that come with the site
+export const getCustomTemplates = cache(async (): Promise<Template[]> => {
+  try {
+    const [row] = await query<{ v: unknown }>("SELECT v FROM settings WHERE k = ?", [TEMPLATES_KEY]);
+    const raw = row && Array.isArray(row.v) ? (row.v as { id?: unknown }[]) : [];
+    const out: Template[] = [];
+    for (const r of raw.slice(0, MAX_TEMPLATES)) {
+      const id = String(r?.id ?? "").trim();
+      const p = parseTemplateJson(r);
+      if (id && "template" in p) out.push({ id, ...p.template });
+    }
+    return out;
+  } catch (e) {
+    console.error("getCustomTemplates: none", e instanceof Error ? e.message : e);
+    return [];
+  }
+});
+export const getAllTemplates = async (): Promise<Template[]> => [...BUILTIN_TEMPLATES, ...(await getCustomTemplates())];
+
 export const getCollections = cache(async (): Promise<Collection[]> => {
   try {
     const [row] = await query<{ v: unknown }>("SELECT v FROM settings WHERE k = ?", [COLLECTIONS_KEY]);

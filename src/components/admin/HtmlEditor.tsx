@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import { importImageAction, uploadImageAction } from "@/app/admin/upload";
+import { checkImageFile, IMAGE_URL, UPLOAD_LINK } from "@/lib/image-rules";
 import { btnGhost, inputCls } from "./ui";
 
 // An HTML field with two views: the source, and a preview of what the page will show (after the same cleaning that runs on save).
@@ -17,8 +18,6 @@ import { btnGhost, inputCls } from "./ui";
 const PREVIEW_CSS = "body { margin: 0; padding: 0; font-family: Inter, system-ui, sans-serif; } .prose-content { font-size: 15px; line-height: 1.75; color: #404040; overflow-wrap: anywhere; } .prose-content > * + * { margin-top: 1rem; } .prose-content h2 { margin-top: 2rem; font-size: 1.375rem; font-weight: 600; line-height: 1.35; color: #000; } .prose-content h3 { margin-top: 1.5rem; font-size: 1.125rem; font-weight: 600; line-height: 1.4; color: #000; } .prose-content h4 { font-weight: 600; color: #000; } .prose-content a { color: #de0000; text-decoration: underline; } .prose-content ul { list-style: disc; padding-left: 1.5rem; } .prose-content ol { list-style: decimal; padding-left: 1.5rem; } .prose-content li + li { margin-top: 0.375rem; } .prose-content strong, .prose-content b { font-weight: 600; color: #171717; } .prose-content figure { margin: 1.5rem 0; } .prose-content img { display: block; margin: 0 auto; width: 100%; max-width: 100%; height: auto; } .prose-content figcaption { margin-top: 0.5rem; text-align: center; font-size: 0.8125rem; font-style: italic; color: #737373; } .prose-content table { display: block; width: 100%; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 14px; } .prose-content th, .prose-content td { border: 1px solid #e5e5e5; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; } .prose-content th { background: #fafafa; font-weight: 600; }";
 const previewDoc = (html: string) => `<!doctype html><html><head><meta charset="utf-8"><style>${PREVIEW_CSS}</style></head><body class="prose-content">${html}</body></html>`;
 
-const UPLOAD_LINK = /^(?:https?:\/\/[^\s/]+)?(\/uploads\/(?:\d{4}\/\d{2}\/)?[0-9a-f]{16}(?:-[0-9a-f]{6,16})?(?:\.webp)?)$/i;
-const IMAGE_URL = /^https?:\/\/\S+\.(?:jpe?g|png|webp|gif|avif)(?:\?\S*)?$/i;
 // a pasted line that is a photo link -> the address to put in src, otherwise null
 const imageSrc = (line: string): string | null => UPLOAD_LINK.exec(line)?.[1] ?? (IMAGE_URL.test(line) ? line : null);
 // <img ... src="https://other-site/..."> in a text (our own /uploads/<id> links and relative paths are not "other websites")
@@ -64,9 +63,10 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
     setBusy((n) => n + pics.length);
     const tags: string[] = [];
     for (const f of pics) {
+      const bad = checkImageFile(f);
       const fd = new FormData();
       fd.set("file", f);
-      const r = await uploadImageAction(fd);
+      const r = bad ? { error: bad, url: undefined } : await uploadImageAction(fd).catch(() => ({ url: undefined, error: "không gửi được ảnh lên server (mạng hoặc server đang bận), thử lại." }));
       if (r.url) tags.push(`<img src="${r.url}" alt="" loading="lazy">`);
       else setErr(`${f.name || "Ảnh"}: ${r.error ?? "tải ảnh thất bại."}`);
       setBusy((n) => n - 1);
@@ -81,7 +81,7 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
     setBusy((n) => n + urls.length);
     const failed: string[] = [];
     for (const u of urls) {
-      const r = await importImageAction(u);
+      const r = await importImageAction(u).catch(() => ({ url: undefined, error: "không gọi được server, thử lại." }));
       if (r.url) done.set(u, r.url);
       else failed.push(`${u.length > 60 ? `${u.slice(0, 57)}...` : u}: ${r.error ?? "tải ảnh thất bại."}`);
       setBusy((n) => n - 1);

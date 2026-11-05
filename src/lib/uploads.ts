@@ -6,7 +6,7 @@ import path from "node:path";
 // directory that is a Docker volume in production. They are served by app/uploads/[...path]/route.ts.
 export const uploadDir = () => path.resolve(process.env.UPLOAD_DIR ?? "data/uploads");
 export const UPLOAD_URL = "/uploads";
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export { MAX_UPLOAD_BYTES } from "./image-rules.ts"; // one limit for the browser and the server
 
 // the URL parts are short, lower-case and contain no dots-only or separator tricks
 const SEGMENT = /^[a-z0-9][a-z0-9_-]*(\.[a-z0-9]+)?$/;

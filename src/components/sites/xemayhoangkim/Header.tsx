@@ -84,26 +84,28 @@ export function Header() {
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setStuck(window.scrollY > 100);
+    // Shrinking the header moves the page up by up to 36px and the browser's scroll anchoring then moves scrollY with it.
+    // With one threshold that flips the header back and forth (it jitters), so it shrinks late and grows back early.
+    const onScroll = () => setStuck((was) => (window.scrollY > 160 ? true : window.scrollY < 30 ? false : was));
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-white">
+    <header className="sticky top-0 z-50 bg-white [overflow-anchor:none]">
       <div className={`mx-auto flex max-w-[1250px] items-center gap-4 px-4 transition-all ${stuck ? "h-[64px]" : "h-[100px]"}`}>
         <button className="xl:hidden" aria-label="Mở menu" onClick={() => setOpen((v) => !v)}>
           {open ? <X /> : <Menu />}
         </button>
         <Link href="/" className="flex items-center gap-2" aria-label="Trang chủ">
           <Image
-            src="/sites/yenthoa/logo.png"
+            src="/sites/xemayhoangkim/logo.jpg"
             alt=""
-            width={1600}
-            height={984}
+            width={1494}
+            height={1064}
             priority
-            className={`w-auto transition-all ${stuck ? "h-9" : "h-[56px]"}`}
+            className={`w-auto transition-all ${stuck ? "h-11" : "h-[76px]"}`}
           />
           <span className="max-w-[170px] text-sm font-bold leading-tight text-[#8a6a1f] md:max-w-none md:text-lg">{BRAND}</span>
         </Link>

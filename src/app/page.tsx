@@ -8,19 +8,22 @@ import { Facts, Services, News, Visit, Footer, FloatingButtons } from "@/compone
 import type { HomeSection } from "@/lib/home-sections";
 import { collectionHref, productsOf } from "@/lib/collections";
 import { priceLabel, productHref } from "@/lib/products";
-import { getHeroSlides, getCollections, getHomeSections, getProducts, getLatestPosts } from "@/lib/repo";
+import { getAllTemplates, getHeroSlides, getCollections, getHomeSections, getProducts, getLatestPosts } from "@/lib/repo";
+import { renderTemplate } from "@/lib/template";
 import { postHref } from "@/lib/posts";
 import { getShop } from "@/lib/shop";
 
 type Block =
   | { kind: "hero" }
+  | { kind: "facts"; section: HomeSection }
+  | { kind: "template"; section: HomeSection; html: string }
   | { kind: "cat"; cat: ShowcaseCategory }
   | { kind: "html"; section: HomeSection }
   | { kind: "banner"; banner: HomeSection }
   | { kind: "collections"; section: HomeSection; cards: ReturnType<typeof visibleCollections> };
 
 export default async function Home() {
-  const [slides, products, sections, collections, shop, newest] = await Promise.all([getHeroSlides(), getProducts(), getHomeSections(), getCollections(), getShop(), getLatestPosts(2, true)]);
+  const [slides, products, sections, collections, shop, newest, templates] = await Promise.all([getHeroSlides(), getProducts(), getHomeSections(), getCollections(), getShop(), getLatestPosts(2, true), getAllTemplates()]);
 
   // the blocks the admin arranged (one per brand until the admin changes it), built from the products in the database
   const bySlug = new Map(products.map((p) => [p.slug, p]));
@@ -29,6 +32,17 @@ export default async function Home() {
     if (!s.active) continue;
     if (s.kind === "slides") {
       blocks.push({ kind: "hero" });
+      continue;
+    }
+    if (s.kind === "template") {
+      const tpl = templates.find((x) => x.id === s.templateId);
+      if (!tpl) continue; // the template was deleted
+      const site = { products: products.length, brands: new Set(products.map((p) => p.brand)).size, branches: shop.branches.length, hotline: shop.hotlines[0] ?? "", name: shop.brand };
+      blocks.push({ kind: "template", section: s, html: renderTemplate(tpl, s.values, site, s.id) });
+      continue;
+    }
+    if (s.kind === "facts") {
+      blocks.push({ kind: "facts", section: s });
       continue;
     }
     if (s.kind === "collections") {
@@ -92,15 +106,26 @@ export default async function Home() {
               return (
                 <div key="hero">
                   <Hero slides={slides} cards={cornerCards} />
-                  <Facts
-                    items={[
-                      { n: products.length, label: "mẫu xe đang bán" },
-                      { n: new Set(products.map((p) => p.brand)).size, label: "hãng xe" },
-                      { n: shop.branches.length, label: "cửa hàng" },
-                    ]}
-                    hotline={shop.hotlines[0]}
-                  />
                 </div>
+              );
+            case "template":
+              // no .prose-content here: a template styles itself, the article typography must not reach into it
+              return (
+                <section key={x.section.id} id={x.section.id} className="mx-auto max-w-[1250px] scroll-mt-28 px-4">
+                  <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: x.html }} />
+                </section>
+              );
+            case "facts":
+              return (
+                <Facts
+                  key={x.section.id}
+                  items={(x.section.factItems ?? []).map((f) => ({
+                    label: f.label,
+                    value: f.auto === "products" ? String(products.length) : f.auto === "brands" ? String(new Set(products.map((p) => p.brand)).size) : f.auto === "branches" ? String(shop.branches.length) : f.value,
+                  }))}
+                  call={x.section.factCall ?? ""}
+                  hotline={shop.hotlines[0] ?? ""}
+                />
               );
             case "cat":
               return <CategorySection key={x.cat.id} cat={x.cat} />;

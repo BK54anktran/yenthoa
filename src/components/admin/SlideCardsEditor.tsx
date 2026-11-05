@@ -13,14 +13,18 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
 ];
 
 // The small cards in the bottom-right corner of the banner (tablet and desktop only).
-export function SlideCardsEditor({ mode, cards, onChange }: { mode: Mode; cards: CornerCard[]; onChange: (p: { cardsMode?: Mode; cards?: CornerCard[] }) => void }) {
-  const set = (i: number, patch: Partial<CornerCard>) => onChange({ cards: cards.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+export function SlideCardsEditor({ mode, cards, onChange }: { mode: Mode; cards: CornerCard[]; onChange: (p: (cur: HomeSection) => Partial<HomeSection>) => void }) {
+  // every change is made on the latest block (a picture finishing its upload late must not undo a card added meanwhile)
+  const set = (i: number, patch: Partial<CornerCard>) => onChange((cur) => ({ cards: (cur.cards ?? []).map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
   const move = (i: number, d: -1 | 1) => {
-    const j = i + d;
-    if (j < 0 || j >= cards.length) return;
-    const c = [...cards];
-    [c[i], c[j]] = [c[j], c[i]];
-    onChange({ cards: c });
+    onChange((cur) => {
+      const list = cur.cards ?? [];
+      const j = i + d;
+      if (j < 0 || j >= list.length) return {};
+      const c = [...list];
+      [c[i], c[j]] = [c[j], c[i]];
+      return { cards: c };
+    });
   };
 
   return (
@@ -29,7 +33,7 @@ export function SlideCardsEditor({ mode, cards, onChange }: { mode: Mode; cards:
       <div className="mt-2 flex flex-wrap gap-4">
         {MODES.map((m) => (
           <label key={m.id} className="flex items-center gap-2 text-sm">
-            <input type="radio" name="cards-mode" checked={mode === m.id} onChange={() => onChange({ cardsMode: m.id })} className="size-4 accent-[#de0000]" />
+            <input type="radio" name="cards-mode" checked={mode === m.id} onChange={() => onChange(() => ({ cardsMode: m.id }))} className="size-4 accent-[#de0000]" />
             <span><b>{m.label}</b> <span className="text-neutral-500">({m.hint})</span></span>
           </label>
         ))}
@@ -46,11 +50,11 @@ export function SlideCardsEditor({ mode, cards, onChange }: { mode: Mode; cards:
               <div className="flex flex-wrap items-center gap-3 md:col-span-2">
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className={btnGhost}>Trái</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === cards.length - 1} className={btnGhost}>Phải</button>
-                <button type="button" onClick={() => onChange({ cards: cards.filter((_, j) => j !== i) })} className={btnGhost}>Xoá thẻ</button>
+                <button type="button" onClick={() => onChange((cur) => ({ cards: (cur.cards ?? []).filter((_, j) => j !== i) }))} className={btnGhost}>Xoá thẻ</button>
               </div>
             </div>
           ))}
-          <button type="button" onClick={() => onChange({ cards: [...cards, { title: "", img: "", link: "" }] })} disabled={cards.length >= MAX_CARDS} className={btnGhost}>+ Thêm thẻ ({cards.length}/{MAX_CARDS})</button>
+          <button type="button" onClick={() => onChange((cur) => ({ cards: [...(cur.cards ?? []), { title: "", img: "", link: "" }] }))} disabled={cards.length >= MAX_CARDS} className={btnGhost}>+ Thêm thẻ ({cards.length}/{MAX_CARDS})</button>
         </div>
       )}
     </div>

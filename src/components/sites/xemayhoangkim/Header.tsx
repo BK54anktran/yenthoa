@@ -100,12 +100,12 @@ export function Header() {
         </button>
         <Link href="/" className="flex items-center gap-2" aria-label="Trang chủ">
           <Image
-            src="/sites/xemayhoangkim/logo.jpg"
+            src="/sites/yenthoa/logo.png"
             alt=""
-            width={1494}
-            height={1064}
+            width={1600}
+            height={984}
             priority
-            className={`w-auto transition-all ${stuck ? "h-11" : "h-[76px]"}`}
+            className={`w-auto transition-all ${stuck ? "h-9" : "h-[56px]"}`}
           />
           <span className="max-w-[170px] text-sm font-bold leading-tight text-[#8a6a1f] md:max-w-none md:text-lg">{BRAND}</span>
         </Link>

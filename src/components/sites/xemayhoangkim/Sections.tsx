@@ -130,11 +130,11 @@ export async function Footer() {
           ))}
           <div className="mt-5 bg-neutral-900 p-5">
             <Image
-              src="/sites/xemayhoangkim/logo.jpg"
+              src="/sites/yenthoa/logo.png"
               alt={BRAND}
-              width={1494}
-              height={1064}
-              className="mb-3 h-20 w-auto rounded bg-white p-1"
+              width={1600}
+              height={984}
+              className="mb-3 h-14 w-auto"
             />
             <p className="font-bold uppercase">{BRAND}</p>
             <div className="mt-3 flex gap-3" aria-label="Mạng xã hội">

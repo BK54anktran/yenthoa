@@ -90,7 +90,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   {posts.map((a) => (
                     <li key={a.slug} className="flex gap-4 bg-white p-4">
                       <Link href={postHref(a.slug)} className="relative block h-24 w-32 shrink-0 overflow-hidden bg-neutral-100" tabIndex={-1} aria-hidden>
-                        <Image src={a.img ?? "/sites/xemayhoangkim/logo.jpg"} alt="" fill sizes="128px" className={a.img ? "object-cover" : "object-contain p-2"} />
+                        <Image src={a.img ?? "/sites/yenthoa/logo.png"} alt="" fill sizes="128px" className={a.img ? "object-cover" : "object-contain p-2"} />
                       </Link>
                       <div className="min-w-0">
                         <p className="text-xs text-neutral-500">{sectionName(taxonomy, a.section)} · {formatDate(a.date)}</p>

@@ -5,6 +5,8 @@ import { UPLOAD_LINK } from "@/lib/image-rules";
 // Photos that live on another website are downloaded into the image manager and the link becomes /uploads/<id>,
 // the same as the admin's HTML field and image boxes do when you paste such a link by hand.
 // A photo that cannot be downloaded keeps its link and is reported, never silently dropped.
+// one save can pull this many photos at most, so a single call cannot keep the server busy for minutes
+const MAX_PER_CALL = 30;
 const EXTERNAL_IMG = /(<img\b[^>]*?\ssrc\s*=\s*)(["'])(https?:\/\/[^"']+)\2/gi;
 
 export type Localizer = {
@@ -24,6 +26,10 @@ export function makeLocalizer(): Localizer {
     if (!/^https?:\/\//i.test(url)) return raw; // a path of our own, or empty
     const known = done.get(url);
     if (known) return known;
+    if (done.size + failed.length >= MAX_PER_CALL) {
+      failed.push(`${url.length > 80 ? `${url.slice(0, 77)}...` : url}: vượt giới hạn ${MAX_PER_CALL} ảnh mỗi lần lưu, hãy lưu tiếp lần nữa`);
+      return raw;
+    }
     try {
       const { data, name } = await fetchImage(url.slice(0, 2000));
       const local = await addImage(data, name);

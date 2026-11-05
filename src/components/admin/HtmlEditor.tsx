@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import { importDocumentAction, importImageAction, uploadImageAction } from "@/app/admin/upload";
+import { tidyHtml } from "@/lib/format-html";
 import { checkImageFile, IMAGE_URL, UPLOAD_LINK } from "@/lib/image-rules";
 import { btnGhost, inputCls } from "./ui";
 
@@ -32,7 +33,7 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
   rows?: number;
   maxLength?: number;
 }) {
-  const [value, setValue] = useState(defaultValue);
+  const [value, setValue] = useState(() => tidyHtml(defaultValue));
   const [mode, setMode] = useState<"html" | "preview">("html");
   const [frameH, setFrameH] = useState(120);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -128,7 +129,7 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
     const at = range ? range[0] : el ? el.selectionStart : value.length;
     const to = range ? range[1] : el ? el.selectionEnd : value.length;
     setValue((cur) => {
-      const next = `${cur.slice(0, at)}${text}${cur.slice(to)}`;
+      const next = tidyHtml(`${cur.slice(0, at)}${text}${cur.slice(to)}`);
       onChange?.(next);
       return next;
     });
@@ -160,6 +161,7 @@ export function HtmlEditor({ name, defaultValue = "", onChange, rows = 10, maxLe
         name={name}
         value={value}
         onChange={(e) => update(e.target.value)}
+        onBlur={() => { const t = tidyHtml(value); if (t !== value) update(t); }}
         onPaste={(e) => {
           const text = e.clipboardData.getData("text/plain");
           const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);

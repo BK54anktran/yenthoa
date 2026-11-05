@@ -1,4 +1,4 @@
-import { applyColorClasses, colorStyleMap, readDocxFormat, type DocxFormat } from "./docx-format.ts";
+import { applyFormat, colorStyleMap, readDocxFormat, type DocxFormat } from "./docx-format.ts";
 import { addImage } from "./media.ts";
 
 // Turns an uploaded Word (.docx) or PDF file into HTML for the HTML fields of the admin.
@@ -40,6 +40,8 @@ const HEADING_MAP = [
   "p[style-name='heading 2'] => h3:fresh",
   "p[style-name='heading 3'] => h4:fresh",
   "p[style-name='heading 4'] => h4:fresh",
+  "p[style-name='Quote'] => blockquote:fresh",
+  "p[style-name='Intense Quote'] => blockquote:fresh",
 ];
 
 export type ImportedDocument = { html: string; warnings: string[] };
@@ -50,12 +52,12 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
     const mammoth = (await import("mammoth")).default;
     const warnings: string[] = [];
     // text colours and the size of each picture are not kept by mammoth: read them from the file itself
-    const fmt: DocxFormat = await readDocxFormat(data).catch(() => ({ data, colors: [], images: [] }));
+    const fmt: DocxFormat = await readDocxFormat(data).catch(() => ({ data, styles: [], images: [] }));
     let imageNo = 0;
     const result = await mammoth.convertToHtml(
       { buffer: fmt.data },
       {
-        styleMap: [...HEADING_MAP, ...colorStyleMap(fmt.colors)],
+        styleMap: [...HEADING_MAP, ...colorStyleMap(fmt.styles)],
         // a picture that cannot be stored is left out and reported, never dropped silently
         convertImage: mammoth.images.imgElement(async (image) => {
           const pic = fmt.images[imageNo++];
@@ -71,7 +73,7 @@ export async function documentToHtml(data: Buffer, fileName: string): Promise<Im
         }),
       },
     );
-    const html = applyColorClasses(result.value).replace(/<img [^>]*data-failed="1"[^>]*>/g, "").replace(/<p>\s*<\/p>/g, "").replace(/<img /g, '<img loading="lazy" ');
+    const html = applyFormat(result.value).replace(/<img [^>]*data-failed="1"[^>]*>/g, "").replace(/<p>\s*<\/p>/g, "").replace(/<img /g, '<img loading="lazy" ');
     return { html, warnings: [...new Set(warnings)] };
   }
   if (lower.endsWith(".pdf")) {

@@ -30,6 +30,22 @@ export function isPublicIp(ip: string): boolean {
   return false;
 }
 
+// options for callers that get an address from a client (a file a chat app hands over), not from the admin
+export type FetchImageOptions = {
+  anyContentType?: boolean; // a signed download address often answers application/octet-stream: the real type is checked when the photo is stored
+  httpsOnly?: boolean;
+  allowedHosts?: string[]; // when set, every hop must be one of these hosts or a sub-domain of one
+};
+
+// "files.example.com" is allowed by "example.com" and by itself, never by "badexample.com"
+export function hostAllowed(host: string, allowed: string[]): boolean {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  return allowed.some((a) => {
+    const x = a.trim().toLowerCase().replace(/^\*?\./, "");
+    return !!x && (h === x || h.endsWith(`.${x}`));
+  });
+}
+
 async function assertPublic(host: string): Promise<void> {
   // a switch for automated tests against a local server; never set it on a real server
   if (process.env.IMPORT_ALLOW_PRIVATE === "1") return;
@@ -38,7 +54,7 @@ async function assertPublic(host: string): Promise<void> {
   if (addrs.length === 0 || !addrs.every(isPublicIp)) throw new Error("Địa chỉ này không được phép tải ảnh.");
 }
 
-export async function fetchImage(rawUrl: string): Promise<{ data: Buffer; name: string }> {
+export async function fetchImage(rawUrl: string, options: FetchImageOptions = {}): Promise<{ data: Buffer; name: string }> {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -47,9 +63,11 @@ export async function fetchImage(rawUrl: string): Promise<{ data: Buffer; name: 
   }
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Chỉ tải được link http hoặc https.");
+    if (options.httpsOnly && url.protocol !== "https:") throw new Error("Chỉ tải được link https.");
     if (url.username || url.password) throw new Error("Link ảnh không hợp lệ.");
+    if (options.allowedHosts?.length && !hostAllowed(url.hostname, options.allowedHosts)) throw new Error("Địa chỉ tải tệp không nằm trong danh sách được phép.");
     await assertPublic(url.hostname);
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(15_000), headers: { accept: "image/*", "user-agent": "YenThoa-ImageImport/1.0" } });
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(15_000), headers: { accept: options.anyContentType ? "*/*" : "image/*", "user-agent": "YenThoa-ImageImport/1.0" } });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get("location");
       if (!loc) throw new Error("Trang ảnh chuyển hướng sai.");
@@ -57,7 +75,7 @@ export async function fetchImage(rawUrl: string): Promise<{ data: Buffer; name: 
       continue;
     }
     if (!res.ok) throw new Error(`Không tải được ảnh (mã lỗi ${res.status}).`);
-    if (!(res.headers.get("content-type") ?? "").toLowerCase().startsWith("image/")) throw new Error("Link này không phải là ảnh.");
+    if (!options.anyContentType && !(res.headers.get("content-type") ?? "").toLowerCase().startsWith("image/")) throw new Error("Link này không phải là ảnh.");
     if (Number(res.headers.get("content-length") ?? 0) > MAX_UPLOAD_BYTES) throw new Error("Ảnh quá lớn (tối đa 10 MB).");
     // read at most the limit, whatever the server says
     const chunks: Uint8Array[] = [];

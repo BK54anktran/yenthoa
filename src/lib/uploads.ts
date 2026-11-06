@@ -22,12 +22,17 @@ export function resolveUpload(parts: string[]): string | null {
 // writes the photo into the upload folder under a new random name; returns the id and the path inside the folder
 export async function storeImage(input: Buffer, existingId?: string): Promise<{ id: string; rel: string }> {
   const sharp = (await import("sharp")).default;
+  let cause: unknown;
   const meta = await sharp(input, { failOn: "error", limitInputPixels: 80_000_000 })
     .metadata()
-    .catch(() => null);
-  if (!meta?.format || !["jpeg", "png", "webp", "gif", "avif"].includes(meta.format)) throw new Error("Chỉ nhận ảnh JPG, PNG, WebP, GIF hoặc AVIF.");
-  // re-encoding drops EXIF/GPS and anything that is not pixels; rotate() applies the camera orientation first
-  const out = await sharp(input).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 78, effort: 4 }).toBuffer();
+    .catch((e: unknown) => {
+      cause = e;
+      return null;
+    });
+  if (!meta?.format || !["jpeg", "png", "webp", "gif", "avif"].includes(meta.format)) throw new Error("Chỉ nhận ảnh JPG, PNG, WebP, GIF hoặc AVIF.", { cause: cause ?? meta?.format });
+  // re-encoding drops EXIF/GPS and anything that is not pixels; rotate() applies the camera orientation first.
+  // failOn "error": a recoverable libvips warning (e.g. a few stray bytes in a JPEG) does not reject the photo, a truncated one still does
+  const out = await sharp(input, { failOn: "error", limitInputPixels: 80_000_000 }).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 78, effort: 4 }).toBuffer();
   const now = new Date();
   const id = existingId ?? crypto.randomBytes(8).toString("hex");
   // a replaced photo keeps its id but gets a new file name, so nothing cached under the old name is shown

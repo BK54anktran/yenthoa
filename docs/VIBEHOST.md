@@ -31,6 +31,7 @@ Lệnh in ra 3 dòng `ADMIN_USER`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`. Gi�
    | `SESSION_SECRET` | dòng từ `npm run admin:hash` (tối thiểu 32 ký tự) | có |
 
    `UPLOAD_DIR` không cần đặt: image đã mặc định `/data/uploads`.
+   Tuỳ chọn: `MCP_FILE_HOSTS` (tên miền cách nhau bằng dấu phẩy) giới hạn nơi công cụ MCP `tai_anh_tu_file` được tải tệp đính kèm; để trống thì nhận mọi địa chỉ https công khai (xem `docs/ADMIN.md`, mục Kết nối AI).
 5. **Khai thư mục dữ liệu bền: `/data`.** Thiếu bước này thì ảnh tải lên mất sau mỗi lần triển khai.
    Khai xong phải **triển khai lại** thì mới có hiệu lực.
 6. **Triển khai.** Mở `https://<tên-miền>/admin/login`, đăng nhập, ở trang Tổng quan bấm **Nạp dữ liệu mẫu** (chỉ hiện khi database trống).

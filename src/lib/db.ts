@@ -120,6 +120,15 @@ export const SCHEMA = [
     last_used_at TIMESTAMP NULL,
     UNIQUE KEY uq_api_keys_hash (key_hash)
   ) ${T}`,
+  // one-time pages for putting a photo in the image library from a browser (the MCP tool tao_link_tai_anh); only a hash of the token is stored
+  `CREATE TABLE IF NOT EXISTS upload_links (
+    token_hash CHAR(64) NOT NULL PRIMARY KEY,
+    key_name VARCHAR(100) NOT NULL,
+    image_name VARCHAR(200) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY ix_upload_links_expires (expires_at)
+  ) ${T}`,
 ];
 
 async function ensureColumn(pool: Pool, table: string, column: string, ddl: string): Promise<void> {

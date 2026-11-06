@@ -24,6 +24,13 @@ export async function listMedia(): Promise<MediaItem[]> {
   return out.sort((a, b) => b.time - a.time);
 }
 
+// size of the stored file (photos are always kept as WebP); null when there is no such photo
+export async function mediaInfo(id: string): Promise<{ size: number; mime: string } | null> {
+  const [row] = await query<{ file: string }>("SELECT file FROM media WHERE id = ?", [id]);
+  const st = row ? await fs.stat(fileOf(row.file)).catch(() => null) : null;
+  return st ? { size: st.size, mime: "image/webp" } : null;
+}
+
 // where each photo is called from: id -> distinct places (a page that uses it twice still counts once).
 // Reads the raw stored text, because that is where the ids are.
 export async function findUsage(): Promise<Map<string, MediaPlace[]>> {

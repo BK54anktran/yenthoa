@@ -12,20 +12,20 @@ import {
 // The tools an AI client can call on /api/mcp. Every write goes through the same functions as the admin pages
 // (lib/admin-service.ts), so the checks (links, images, HTML, unique paths...) are written once.
 // Reading uses parameters only; nothing is put into SQL text.
-type Ctx = { keyName: string };
+export type Ctx = { keyName: string; origin: string };
 type Result = { content: { type: "text"; text: string }[]; isError?: boolean };
 
-const ok = (v: unknown): Result => ({ content: [{ type: "text", text: JSON.stringify(v, null, 2) }] });
-const fail = (message: string): Result => ({ isError: true, content: [{ type: "text", text: message }] });
+export const ok = (v: unknown): Result => ({ content: [{ type: "text", text: JSON.stringify(v, null, 2) }] });
+export const fail = (message: string): Result => ({ isError: true, content: [{ type: "text", text: message }] });
 // one line per write in the server log: which key, which tool, which row. Never the key itself.
-const logWrite = (ctx: Ctx, tool: string, detail: string) => console.log(`[mcp] key=${JSON.stringify(ctx.keyName)} tool=${tool} ${detail}`);
+export const logWrite = (ctx: Ctx, tool: string, detail: string) => console.log(`[mcp] key=${JSON.stringify(ctx.keyName)} tool=${tool} ${detail}`);
 
 // read straight from the database (lib/repo.ts keeps its answer for the rest of a request, which would hide a change just saved)
-const readTaxonomy = async (): Promise<Taxonomy> => {
+export const readTaxonomy = async (): Promise<Taxonomy> => {
   const [row] = await query<{ v: unknown }>("SELECT v FROM settings WHERE k = ?", [TAXONOMY_KEY]);
   return row ? normalizeTaxonomy(row.v) : defaultTaxonomy();
 };
-const readMenu = async () => {
+export const readMenu = async () => {
   const [row] = await query<{ v: unknown }>("SELECT v FROM settings WHERE k = ?", [MENU_KEY]);
   return row ? normalizeMenu(row.v) : defaultMenu();
 };
@@ -73,7 +73,7 @@ type PostRow = { id: number; slug: string; title: string; date: string; section:
 const postView = (r: PostRow) => ({ id: r.id, slug: r.slug, title: r.title, date: String(r.date).slice(0, 10), section: r.section, excerpt: r.excerpt, img: r.img, html: r.html, published: !!r.published });
 const getPost = async (id: number) => (await query<PostRow>("SELECT * FROM posts WHERE id = ?", [id]))[0];
 
-const confirmDelete = z.literal(true).describe("Bắt buộc là true để xác nhận xoá. Không khôi phục được.");
+export const confirmDelete = z.literal(true).describe("Bắt buộc là true để xác nhận xoá. Không khôi phục được.");
 
 export function registerTools(server: McpServer, ctx: Ctx): void {
   // ------------------------------------------------ overview

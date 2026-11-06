@@ -162,14 +162,43 @@ claude mcp add --transport http yenthoa https://<tên-miền>/api/mcp --header "
 | Xe | `tim_xe`, `xem_xe`, `luu_xe` (tạo hoặc sửa), `bat_tat_xe`, `xoa_xe` |
 | Bài viết | `tim_bai_viet`, `xem_bai_viet`, `luu_bai_viet` (tạo hoặc sửa), `bat_tat_bai_viet`, `xoa_bai_viet` |
 | Cửa hàng | `xem_thong_tin_cua_hang`, `luu_thong_tin_cua_hang` |
-| Danh mục | `xem_danh_muc` (hãng, loại xe, mục tin), `luu_danh_muc` (thêm hoặc sửa, không xoá mục nào) |
+| Hướng dẫn | `huong_dan` (AI tự hỏi cách dùng, chung hoặc theo phần: xe, bai_viet, trang_chu, bo_suu_tap, mau, hinh_anh, menu, danh_muc, cua_hang). Phần hướng dẫn chung cũng được gửi kèm ngay khi AI kết nối (`instructions` của MCP), sửa ở `src/lib/mcp-guide.ts` |
+| Danh mục | `xem_danh_muc` (hãng, loại xe, mục tin), `luu_danh_muc` (thêm hoặc sửa, không xoá mục nào), `xoa_muc_danh_muc` (xoá một mục, bị từ chối nếu còn xe hoặc bài đang dùng) |
+| Menu đầu trang | `xem_menu`, `luu_menu` |
+| Trang chủ | `xem_trang_chu` (banner đầu trang và các mục), `luu_trang_chu` |
+| Bộ sưu tập | `xem_bo_suu_tap`, `luu_bo_suu_tap` (tạo hoặc sửa), `sap_xep_bo_suu_tap`, `xoa_bo_suu_tap` |
+| Mẫu | `xem_mau`, `luu_mau`, `nhan_ban_mau`, `xoa_mau` |
+| Hình ảnh | `tim_hinh_anh`, `xem_hinh_anh` (kèm nơi đang dùng), `tai_anh_tu_link`, `tai_anh_tu_file` (ảnh người dùng đính kèm trong chat, ứng dụng tự truyền tệp, ví dụ ChatGPT), `lay_lenh_tai_anh_len` (cho AI có Bash: trả lệnh `curl` upload tệp), `tao_link_tai_anh` (dự phòng: trang web dùng một lần để người dùng tự chọn ảnh), `tai_anh_len` (base64, chỉ cho ảnh rất nhỏ), `doi_ten_hinh_anh`, `thay_hinh_anh` (thay nội dung, mọi nơi dùng tự đổi), `xoa_hinh_anh` |
 
 - Sửa (`luu_xe`, `luu_bai_viet`, `luu_thong_tin_cua_hang`): trường nào không gửi thì giữ nguyên. Mọi kiểm tra dữ liệu (hãng, mục, link ảnh, đường dẫn không trùng...) dùng đúng hàm của trang quản trị (`src/lib/admin-service.ts`).
 - Xoá (`xoa_xe`, `xoa_bai_viet`) bắt buộc gửi `confirm: true`, thiếu là bị từ chối. Không có công cụ xoá hàng loạt hay đặt lại dữ liệu.
 - Ô HTML đi qua cùng bộ lọc như trang quản trị, tức là **giữ nguyên mọi thẻ kể cả `<script>`** (xem "Bảo mật"). Người giữ key có quyền như quản trị viên, nên giữ key như mật khẩu.
 - Mỗi thao tác ghi in một dòng ra nhật ký máy chủ (`[mcp] key="<tên key>" tool=... id=...`), không bao giờ in key.
 - **Ảnh từ trang web khác** (`<img src="https://...">` trong nội dung, ảnh bìa, ảnh xe, thư viện ảnh, ảnh của dòng phiên bản) gửi trong lần gọi `luu_bai_viet` hoặc `luu_xe` được **tự tải về server** vào mục Hình ảnh và đổi thành `/uploads/<mã>`, giống như dán link vào trang quản trị. Ảnh không tải được thì giữ nguyên link và công cụ trả thêm `canh_bao_anh_khong_tai_duoc`. Chỉ xử lý các trường có trong lần gọi, nội dung đã lưu trước đó không bị tải lại. Mỗi ảnh tối đa 10 MB và mỗi lần lưu tải tối đa 30 ảnh (ảnh vượt giới hạn giữ nguyên link và có cảnh báo, lưu lần nữa để tải tiếp); server chỉ tải từ địa chỉ công khai trên internet.
-- Chưa gồm: banner, trang chủ, menu riêng, mẫu, bộ sưu tập, tải tệp ảnh từ máy lên (dùng link ảnh `https://...` hoặc đường dẫn có sẵn `/...`).
+
+**Tải tệp ảnh lên bằng lệnh (không gõ base64).** Cho AI có Bash (Claude Code…): gọi `lay_lenh_tai_anh_len` để lấy địa chỉ và lệnh mẫu, rồi chạy
+
+```bash
+curl -sS -H "Authorization: Bearer $YENTHOA_MCP_KEY" -F "file=@/duong/dan/anh.webp" -F "name=banner-24-11" https://<tên-miền>/api/mcp-upload
+```
+
+- Key là key MCP ở trang Kết nối, đặt trong biến môi trường `YENTHOA_MCP_KEY` (với Claude Code trên web: nhập ở phần bí mật của môi trường, đừng dán vào hội thoại). Máy chạy lệnh phải truy cập được tên miền của website. Claude Desktop không có Bash nên không dùng được cách này.
+- Chỉ nhận key trong header `Authorization: Bearer`, không dùng phiên đăng nhập admin. Thiếu hoặc sai key: 401; key tắt: 401; sai nhiều lần: 429 (cùng bộ đếm với `/api/mcp`).
+- Đúng một tệp, trường tên `file`, trường `name` tuỳ chọn. JPG, PNG, WebP, GIF, AVIF, tối đa 10 MB (quá giới hạn: 413). Loại ảnh xác định bằng nội dung tệp, không tin phần mở rộng hay Content-Type; SVG và tệp hỏng bị từ chối (422, kèm kích thước, chữ ký tệp và lỗi gốc). Ảnh được nén WebP, bỏ EXIF/GPS, mỗi lần tải là một mã mới (không ghi đè).
+- Trả `{"link":"/uploads/<mã>","id":"<mã>"}`. Nhật ký máy chủ ghi một dòng `tool=tai_anh_len_tep`, không ghi key.
+- Kiểm thử: `BASE_URL=http://127.0.0.1:3000 MCP_KEY=<key> npm run test:upload` (chạy vào server đang chạy, ảnh thử được xoá lại).
+**Ảnh đính kèm trong chat (`tai_anh_tu_file`).** Công cụ khai báo `_meta: {"openai/fileParams": ["file"]}` (Apps SDK của OpenAI). Ứng dụng chat đổi tệp người dùng đính kèm thành đối tượng `file` gồm `download_url` và `file_id` (tuỳ chọn `mime_type`, `file_name`), nên AI không phải mã hoá gì. Server tải ngay từ `download_url` trong lần gọi đó (link tạm sẽ hết hạn, hết hạn thì báo AI nhờ người dùng gửi lại ảnh) và trả `image_id`, `url`, `size`, `mime_type` (ảnh lưu dạng WebP, `kich_thuoc_goc` là dung lượng tệp gốc).
+- Chỉ nhận link **https**, mỗi bước chuyển hướng (tối đa 4) đều kiểm tra lại; địa chỉ nội bộ, riêng tư, metadata đám mây bị chặn; chờ tối đa 15 giây, tối đa 10 MB; loại ảnh xác định bằng nội dung tệp chứ không tin Content-Type (link tạm thường trả `application/octet-stream`).
+- Biến môi trường tuỳ chọn `MCP_FILE_HOSTS` (danh sách tên miền cách nhau bằng dấu phẩy, gồm cả tên miền con) giới hạn nơi được phép tải tệp, ví dụ `MCP_FILE_HOSTS=files.example.com` (thay bằng tên miền thật của link tạm). Để trống thì nhận mọi địa chỉ https công khai. Nên đặt sau khi đã xem nhật ký thật để biết tên miền link tạm của ứng dụng chat đang dùng.
+- Nhật ký chỉ ghi `file_id`, không ghi `download_url` (link có chữ ký).
+
+**Trang tải ảnh dùng một lần (`tao_link_tai_anh`).** Cho ứng dụng không truyền được tệp và không có Bash. AI gọi công cụ (tuỳ chọn `name`, `phut` từ 1 đến 30, mặc định 10) để lấy địa chỉ `https://<tên-miền>/tai-anh/ytu_...`; người dùng mở bằng trình duyệt, chọn ảnh, bấm Tải lên; AI gọi `tim_hinh_anh` với tên ảnh đã đặt để lấy link `/uploads/<mã>`.
+- Địa chỉ là bí mật duy nhất: ngẫu nhiên 192 bit, **dùng một lần**, hết hạn sau vài phút; cơ sở dữ liệu (bảng `upload_links`) chỉ lưu băm SHA-256, không lưu địa chỉ. Mở trang không làm mất lượt (để ứng dụng xem trước link không tiêu hao); chỉ lần tải thành công mới dùng hết. Tệp bị từ chối (không phải ảnh, quá lớn) thì địa chỉ vẫn dùng lại được. Hai lần tải cùng lúc chỉ một lần thành công.
+- Trang không có script, gửi kèm CSP chặt, `noindex`, `no-store`. Đoán sai địa chỉ quá 5 lần trong 15 phút từ một địa chỉ mạng: 429.
+- Kiểm thử: `BASE_URL=http://127.0.0.1:3000 MCP_KEY=<key> npm run test:upload-link` (phần `tai_anh_tu_file` cần server chạy với `IMPORT_ALLOW_PRIVATE=1 NODE_TLS_REJECT_UNAUTHORIZED=0`, chỉ để thử; đặt `SKIP_FILE_TOOL=1` để bỏ qua). Phần tải tệp không cần cơ sở dữ liệu: `npm run test:file-fetch`.
+- **Danh sách gửi nguyên cái** (`luu_trang_chu` cho banner và các mục, `luu_menu` cho cây menu): danh sách gửi lên thay thế cả danh sách cũ, nên lấy từ `xem_trang_chu` hoặc `xem_menu` rồi sửa. Gửi ít mục hơn hiện tại thì bị từ chối, trừ khi gửi `cho_phep_bo: true`. Phần không gửi (ví dụ chỉ gửi `sections`, không gửi `slides`) thì giữ nguyên.
+- **Hình ảnh:** `xoa_hinh_anh` từ chối khi ảnh đang được dùng (liệt kê nơi dùng), trừ khi gửi `ke_ca_dang_dung: true`; `thay_hinh_anh` và `xoa_hinh_anh` đều cần `confirm: true`. Ảnh ngoài ở trang chủ, bộ sưu tập (ảnh, ảnh nền, HTML) cũng được tự tải về server như ở xe và bài viết.
+- Không qua MCP, cố ý: trang Kết nối (tạo, xoá key), nạp dữ liệu mẫu, đăng nhập, và đường dẫn file trên máy bạn (máy chủ không đọc được; gửi ảnh bằng lệnh từ `lay_lenh_tai_anh_len`, bằng tệp đính kèm `tai_anh_tu_file`, bằng trang `tao_link_tai_anh`, hoặc link bằng `tai_anh_tu_link`).
 
 ## Quy tắc ảnh (giống nhau ở mọi nơi)
 

@@ -1,8 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { exec, query, transaction } from "@/lib/db";
-import { type Shop, type Store } from "@/lib/defaults";
+import { type HeroSlide, type Shop, type Store } from "@/lib/defaults";
 import { taxonomyUsage } from "@/lib/admin-repo";
-import { getTaxonomy } from "@/lib/repo";
+import { getAllTemplates, getCollections, getCustomTemplates, getHomeSections, getTaxonomy } from "@/lib/repo";
+import { cleanValues, MAX_TEMPLATES, parseTemplateJson, TEMPLATES_KEY } from "@/lib/template";
+import { COLLECTIONS_KEY, MAX_COLLECTIONS, type Collection } from "@/lib/collections";
+import { SETTING_KEY, MAX_CARDS, MAX_FACTS, type CornerCard, type FactItem, type HomeSection } from "@/lib/home-sections";
 import { TAXONOMY_KEY, type BrandMenu, type Taxonomy } from "@/lib/taxonomy";
 import { MAX_DEPTH, MAX_NODES, MENU_KEY, type MenuNode } from "@/lib/menu";
 import { cleanHtml, htmlToText } from "@/lib/sanitize";
@@ -16,6 +19,7 @@ import { slugify } from "@/lib/slug";
 // the caller does assertAdmin()/the key check first and refreshSite() after.
 export type Failure = { error: string };
 export type Saved = Failure | { id: number };
+export type SavedKey = Failure | { id: string }; // rows named by a code instead of a number (collections, templates)
 export type Done = Failure | { ok: true };
 
 export const text = (f: FormData, k: string, max: number) => String(f.get(k) ?? "").trim().slice(0, max);
@@ -235,5 +239,261 @@ export async function saveTaxonomy(f: FormData): Promise<Done> {
     await run(put, [TAXONOMY_KEY, JSON.stringify(next)]);
     await run(put, [MENU_KEY, JSON.stringify({ main, secondary })]);
   });
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- home page: top banners and blocks
+type Slide = HeroSlide & { link: string; dim: boolean; imgMobile: string; fit: "cover" | "natural"; active: boolean };
+function parseSlides(f: FormData): { error: string } | { slides: Slide[] } {
+  const raw = parseJson<(Partial<HeroSlide> & { active?: boolean })[]>(f, "slides");
+  if (!Array.isArray(raw) || raw.length > 10) return { error: "Tối đa 10 banner đầu trang." };
+  const slides: Slide[] = [];
+  for (const s of raw) {
+    const title = clip(s.title, 200);
+    const img = clip(s.img, 500);
+    // a banner that was added and never filled in (no picture, no text) is left out instead of stopping the save
+    if (!img && !title && !clip(s.sub, 300) && !clip(s.eyebrow, 200) && !clip(s.imgMobile, 500)) continue;
+    if (!img || imgUrl(img) === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: ảnh phải bắt đầu bằng / hoặc https://` };
+    const imgMobile = clip(s.imgMobile, 500);
+    if (imgUrl(imgMobile) === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: ảnh trên điện thoại phải bắt đầu bằng / hoặc https://` };
+    const link = linkUrl(clip(s.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+    if (link === null) return { error: `Banner ${title ? `"${title}"` : `thứ ${slides.length + 1}`}: đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+    slides.push({ eyebrow: clip(s.eyebrow, 200), title, sub: clip(s.sub, 300), img, imgMobile, fit: s.fit === "natural" ? "natural" : "cover", link, dim: s.dim !== false, active: s.active !== false });
+  }
+  return { slides };
+}
+
+async function parseSections(f: FormData): Promise<{ error: string } | { sections: HomeSection[] }> {
+  const raw = parseJson<Partial<HomeSection>[]>(f, "sections");
+  if (!Array.isArray(raw) || raw.length > 30) return { error: "Tối đa 30 mục." };
+  const tax = await getTaxonomy();
+  const sections: HomeSection[] = [];
+  const used = new Set<string>();
+  for (const r of raw) {
+    // a block that was added and never filled in at all is left out instead of stopping the save
+    if (!clip(r.name, 80) && ((r.kind === "banner" && !clip(r.image, 500) && !clip(r.link, 500)) || (r.kind === "showcase" && !clip(r.brand, 60) && !clip(r.collection, 120) && !(Array.isArray(r.slugs) && r.slugs.length)))) continue;
+    const name = clip(r.name, 80) || (r.kind === "html" ? "Khối HTML" : "");
+    if (!name) return { error: "Mỗi mục cần có tên." };
+    const banner = r.kind === "banner";
+    const slidesBlock = r.kind === "slides";
+    let id = slugify(clip(r.id, 60)) || slugify(name) || "muc";
+    for (let n = 2; used.has(id); n++) id = `${slugify(clip(r.id, 50)) || "muc"}-${n}`;
+    used.add(id);
+    if (slidesBlock) {
+      if (sections.some((x) => x.kind === "slides")) return { error: "Chỉ được có một mục Banner đầu trang." };
+      const cardsMode = r.cardsMode === "custom" || r.cardsMode === "off" ? r.cardsMode : "auto";
+      const rawCards = Array.isArray(r.cards) ? r.cards : [];
+      if (rawCards.length > MAX_CARDS) return { error: `Tối đa ${MAX_CARDS} thẻ ở góc banner.` };
+      const cards: CornerCard[] = [];
+      for (const c of rawCards) {
+        const title = clip(c?.title, 80);
+        const img = clip(c?.img, 500);
+        if (!title) return { error: "Mỗi thẻ ở góc banner cần có tiêu đề." };
+        if (!img || imgUrl(img) === null) return { error: `Thẻ "${title}": cần chọn ảnh (đường dẫn bắt đầu bằng / hoặc https://).` };
+        const link = linkUrl(clip(c?.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+        if (link === null || link === "") return { error: `Thẻ "${title}": cần đường dẫn bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+        cards.push({ title, img, link });
+      }
+      if (cardsMode === "custom" && cards.length === 0) return { error: "Chọn kiểu thẻ tự tạo thì cần ít nhất một thẻ (hoặc đổi sang tự động / ẩn)." };
+      sections.push({ id, kind: "slides", image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, cardsMode, cards });
+      continue;
+    }
+    if (r.kind === "template") {
+      const tpl = (await getAllTemplates()).find((x) => x.id === r.templateId);
+      if (!tpl) return { error: `Mục "${clip(r.name, 80) || "mẫu"}": mẫu không còn tồn tại.` };
+      const cv = cleanValues(tpl.fields, r.values, { html: cleanHtml, image: (s) => imgUrl(s), link: (s) => linkUrl(s) });
+      if ("error" in cv) return { error: `Mục "${name || tpl.name}": ${cv.error}` };
+      sections.push({ id, kind: "template", image: "", link: "", name: name || tpl.name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, templateId: tpl.id, values: cv.values });
+      continue;
+    }
+    if (r.kind === "facts") {
+      if (sections.some((x) => x.kind === "facts")) return { error: "Chỉ được có một mục Dải số liệu." };
+      const rawItems = Array.isArray(r.factItems) ? r.factItems : [];
+      if (rawItems.length > MAX_FACTS) return { error: `Tối đa ${MAX_FACTS} số liệu.` };
+      const factItems: FactItem[] = [];
+      for (const x of rawItems) {
+        const auto = x?.auto === "products" || x?.auto === "brands" || x?.auto === "branches" ? x.auto : "";
+        const label = clip(x?.label, 40);
+        const value = clip(x?.value, 12);
+        if (!label) return { error: "Mỗi số liệu cần có chữ mô tả (ví dụ \"hãng xe\")." };
+        if (!auto && !value) return { error: `Số liệu "${label}": chọn cách tự đếm hoặc nhập số.` };
+        factItems.push({ label, value: auto ? "" : value, auto });
+      }
+      sections.push({ id, kind: "facts", image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false, factItems, factCall: clip(r.factCall, 80) });
+      continue;
+    }
+    if (r.kind === "html") {
+      const html = cleanHtml(String(r.html ?? "").slice(0, 100_000));
+      sections.push({ id, kind: "html", html, image: "", link: "", name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    if (r.kind === "collections") {
+      if (sections.some((x) => x.kind === "collections")) return { error: "Chỉ được có một mục Bộ sưu tập." };
+      // empty = show every collection; otherwise only the picked ones, in this order
+      const known = new Set((await getCollections()).map((c) => c.id));
+      const picked = [...new Set((Array.isArray(r.slugs) ? r.slugs : []).map((x) => clip(x, 120)))].filter((x) => known.has(x));
+      sections.push({ id, kind: "collections", display: r.display === "cards" ? "cards" : "showcase", image: "", link: "", name, collection: "", brand: "", slugs: picked, backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    if (banner) {
+      const image = clip(r.image, 500);
+      if (!image || imgUrl(image) === null) return { error: `Banner "${name}": cần chọn ảnh (đường dẫn bắt đầu bằng / hoặc https://).` };
+      const link = linkUrl(clip(r.link, 500).replace(/[\u0000-\u001f\s]/g, ""));
+      if (link === null) return { error: `Banner "${name}": đường dẫn phải bắt đầu bằng /, #, http://, https://, tel: hoặc mailto:` };
+      sections.push({ id, kind: "banner", image, link, name, collection: "", brand: "", slugs: [], backdrop: "", dark: false, active: r.active !== false });
+      continue;
+    }
+    const collection = clip(r.collection, 120);
+    if (collection && !(await getCollections()).some((c) => c.id === collection)) return { error: `Mục "${name}": bộ sưu tập không còn tồn tại.` };
+    const brand = clip(r.brand, 60);
+    if (brand && !tax.brands.some((b) => b.id === brand)) return { error: `Mục "${name}": hãng không hợp lệ.` };
+    const slugs = [...new Set((Array.isArray(r.slugs) ? r.slugs : []).map((x) => clip(x, 120)).filter(Boolean))].slice(0, 80);
+    if (!collection && !brand && slugs.length === 0) return { error: `Mục "${name}": chọn hãng, bộ sưu tập hoặc thêm ít nhất một xe vào danh sách.` };
+    const backdrop = clip(r.backdrop, 500);
+    if (imgUrl(backdrop) === null) return { error: `Mục "${name}": ảnh nền phải bắt đầu bằng / hoặc https://` };
+    const backdropMobile = clip(r.backdropMobile, 500);
+    if (imgUrl(backdropMobile) === null) return { error: `Mục "${name}": ảnh nền trên điện thoại phải bắt đầu bằng / hoặc https://` };
+    sections.push({ id, kind: "showcase", image: "", link: "", name, collection, brand, slugs, backdrop, backdropMobile, dark: !!r.dark, active: r.active !== false });
+  }
+  return { sections };
+}
+
+export async function saveHome(f: FormData): Promise<Done> {
+  const s = parseSlides(f);
+  if ("error" in s) return { error: s.error };
+  const c = await parseSections(f);
+  if ("error" in c) return { error: c.error };
+  await transaction(async (run) => {
+    await run("DELETE FROM hero_slides");
+    for (const [i, x] of s.slides.entries()) {
+      await run("INSERT INTO hero_slides (eyebrow, title, sub, img, img_mobile, fit, link, dim, sort, active) VALUES (?,?,?,?,?,?,?,?,?,?)", [x.eyebrow, x.title, x.sub, x.img, x.imgMobile || null, x.fit, x.link, x.dim ? 1 : 0, i, x.active ? 1 : 0]);
+    }
+    await run("INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [SETTING_KEY, JSON.stringify(c.sections)]);
+  });
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- collections
+const putCollections = (list: Collection[]) =>
+  exec("INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [COLLECTIONS_KEY, JSON.stringify(list)]);
+
+export async function createCollection(f: FormData): Promise<SavedKey> {
+  const name = clip(f.get("name"), 80);
+  if (!name) return { error: "Cần nhập tên bộ sưu tập." };
+  const all = await getCollections();
+  if (all.length >= MAX_COLLECTIONS) return { error: `Tối đa ${MAX_COLLECTIONS} bộ sưu tập.` };
+  const base = slugify(name) || "bo-suu-tap";
+  let id = base;
+  for (let n = 2; all.some((c) => c.id === id); n++) id = `${base}-${n}`.slice(0, 120);
+  await putCollections([...all, { id, name, description: "", html: "", image: "", backdrop: "", dark: false, mode: "manual", slugs: [], brands: [], types: [], priceMin: 0, priceMax: 0, active: true }]);
+  return { id };
+}
+
+export async function saveCollection(f: FormData): Promise<SavedKey> {
+  const id = clip(f.get("id"), 120);
+  const all = await getCollections();
+  if (!all.some((c) => c.id === id)) return { error: "Không tìm thấy bộ sưu tập này." };
+  let raw: Partial<Collection>;
+  try {
+    raw = JSON.parse(String(f.get("collection") ?? ""));
+  } catch {
+    return { error: "Dữ liệu không hợp lệ." };
+  }
+  const name = clip(raw.name, 80);
+  if (!name) return { error: "Cần nhập tên bộ sưu tập." };
+  const image = clip(raw.image, 500);
+  if (imgUrl(image) === null) return { error: "Ảnh phải bắt đầu bằng / hoặc https://" };
+  const backdrop = clip(raw.backdrop, 500);
+  if (imgUrl(backdrop) === null) return { error: "Ảnh nền phải bắt đầu bằng / hoặc https://" };
+  const backdropMobile = clip(raw.backdropMobile, 500);
+  if (imgUrl(backdropMobile) === null) return { error: "Ảnh nền trên điện thoại phải bắt đầu bằng / hoặc https://" };
+  const tax = await getTaxonomy();
+  const mode = raw.mode === "auto" ? "auto" : "manual";
+  const slugs = [...new Set((Array.isArray(raw.slugs) ? raw.slugs : []).map((x) => clip(x, 191)).filter(Boolean))].slice(0, 200);
+  const brands = (Array.isArray(raw.brands) ? raw.brands : []).map((x) => clip(x, 60)).filter((b) => tax.brands.some((x) => x.id === b));
+  const types = (Array.isArray(raw.types) ? raw.types : []).map((x) => clip(x, 60)).filter((t) => tax.types.some((x) => x.id === t));
+  const money = (v: unknown) => Math.max(0, Math.round(Number(String(v ?? "0").replace(/[^\d.]/g, "")) || 0));
+  const priceMin = money(raw.priceMin);
+  const priceMax = money(raw.priceMax);
+  if (priceMax && priceMin > priceMax) return { error: "Giá từ phải nhỏ hơn hoặc bằng giá đến." };
+  if (mode === "manual" && slugs.length === 0 && raw.active !== false) return { error: "Bộ sưu tập chọn tay cần ít nhất một xe (hoặc tắt hiển thị)." };
+  const next: Collection = { id, name, description: cleanHtml(String(raw.description ?? "").slice(0, 5000)), html: cleanHtml(String(raw.html ?? "").slice(0, 200_000)), image, backdrop, backdropMobile, dark: !!raw.dark, mode, slugs, brands, types, priceMin, priceMax, active: raw.active !== false };
+  await putCollections(all.map((c) => (c.id === id ? next : c)));
+  return { id };
+}
+
+export async function moveCollection(id: string, dir: "up" | "down"): Promise<Done> {
+  const all = await getCollections();
+  const i = all.findIndex((c) => c.id === id);
+  if (i < 0) return { error: "Không tìm thấy bộ sưu tập này." };
+  const j = i + (dir === "up" ? -1 : 1);
+  if (j < 0 || j >= all.length) return { ok: true };
+  [all[i], all[j]] = [all[j], all[i]];
+  await putCollections(all);
+  return { ok: true };
+}
+
+export async function deleteCollection(id: string): Promise<Done> {
+  const all = await getCollections();
+  if (!all.some((c) => c.id === id)) return { error: "Không tìm thấy bộ sưu tập này." };
+  await putCollections(all.filter((c) => c.id !== id));
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- templates (home page blocks made from HTML)
+const putTemplates = (list: { id: string; name: string; description: string; html: string; fields: unknown }[]) =>
+  exec("INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [TEMPLATES_KEY, JSON.stringify(list.map((t) => ({ id: t.id, name: t.name, description: t.description, html: t.html, fields: t.fields })))]);
+
+// a free id for a new template: tc-<name>, tc-<name>-2, ...
+async function freeTemplateId(name: string): Promise<string> {
+  const all = await getAllTemplates();
+  const base = `tc-${slugify(name) || "mau"}`.slice(0, 60);
+  let id = base;
+  for (let n = 2; all.some((t) => t.id === id); n++) id = `${base}-${n}`;
+  return id;
+}
+
+// saves a whole template (JSON in the field "template"); no "id" = a new template
+export async function saveTemplate(f: FormData): Promise<SavedKey> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(f.get("template") ?? ""));
+  } catch {
+    return { error: "Dữ liệu không hợp lệ." };
+  }
+  const p = parseTemplateJson(raw);
+  if ("error" in p) return { error: p.error };
+  const id = String(f.get("id") ?? "").trim();
+  const custom = await getCustomTemplates();
+  if (!id) {
+    if (custom.length >= MAX_TEMPLATES) return { error: `Tối đa ${MAX_TEMPLATES} mẫu.` };
+    const nid = await freeTemplateId(p.template.name);
+    await putTemplates([...custom, { id: nid, ...p.template }]);
+    return { id: nid };
+  }
+  if (!custom.some((t) => t.id === id)) return { error: "Không tìm thấy mẫu này (mẫu có sẵn không sửa được, hãy tạo bản sao)." };
+  await putTemplates(custom.map((t) => (t.id === id ? { id, ...p.template } : t)));
+  return { id };
+}
+
+// a copy of any template (also of the ones that come with the site) that can be edited
+export async function duplicateTemplate(id: string): Promise<SavedKey> {
+  const src = (await getAllTemplates()).find((t) => t.id === id);
+  const custom = await getCustomTemplates();
+  if (!src) return { error: "Không tìm thấy mẫu này." };
+  if (custom.length >= MAX_TEMPLATES) return { error: `Tối đa ${MAX_TEMPLATES} mẫu.` };
+  const name = `${src.name} (bản sao)`.slice(0, 80);
+  const nid = await freeTemplateId(name);
+  await putTemplates([...custom, { id: nid, name, description: src.description, html: src.html, fields: src.fields }]);
+  return { id: nid };
+}
+
+// deleting is refused while a block on the home page still uses the template
+export async function deleteTemplate(id: string): Promise<Done> {
+  const custom = await getCustomTemplates();
+  if (!custom.some((t) => t.id === id)) return { error: "Không tìm thấy mẫu này." };
+  const users = (await getHomeSections()).filter((s) => s.kind === "template" && s.templateId === id);
+  if (users.length) return { error: `Mẫu đang được dùng ở trang chủ (${users.map((s) => s.name).join(", ")}). Xoá các mục đó trước.` };
+  await putTemplates(custom.filter((t) => t.id !== id));
   return { ok: true };
 }

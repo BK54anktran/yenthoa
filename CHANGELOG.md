@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- MCP `tai_anh_tu_file`: accept a file attached in the chat (ChatGPT `openai/fileParams`), fetched at once from its short-lived https download address with SSRF, redirect, size and optional host (`MCP_FILE_HOSTS`) limits.
+- MCP `tao_link_tai_anh` and the one-time upload page `/tai-anh/<token>` for chat apps that can pass neither a file nor run a command (new table `upload_links`; only a hash of the token is stored).
+
 ### Fixed
 - Count the README token badge in CI so it reflects the current default branch instead of a stale hosted count.
 

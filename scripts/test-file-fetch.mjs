@@ -2,7 +2,7 @@
 //   npm run test:file-fetch
 import http from "node:http";
 import sharp from "sharp";
-import { fetchImage, hostAllowed } from "../src/lib/import-image.ts";
+import { fetchImage, hostAllowed, isPublicIp } from "../src/lib/import-image.ts";
 
 let failed = 0;
 const check = (label, cond, extra = "") => {
@@ -53,6 +53,11 @@ delete process.env.IMPORT_ALLOW_PRIVATE;
 await rejects("127.0.0.1 bị từ chối", fetchImage(`${base}/octet`, { anyContentType: true }), /không được phép/);
 await rejects("169.254.169.254 (metadata đám mây) bị từ chối", fetchImage("http://169.254.169.254/latest/meta-data/", { anyContentType: true }), /không được phép/);
 await rejects("[::1] bị từ chối", fetchImage("http://[::1]/x", { anyContentType: true }), /không được phép/);
+// IPv6 viết lại địa chỉ IPv4 nội bộ (URL đổi [::ffff:127.0.0.1] thành dạng hex ::ffff:7f00:1)
+for (const h of ["[::ffff:127.0.0.1]", "[::ffff:10.0.0.1]", "[::ffff:169.254.169.254]", "[64:ff9b::7f00:1]", "[2002:7f00:1::]", "[::7f00:1]", "[2001:db8::1]"]) {
+  await rejects(`${h} bị từ chối`, fetchImage(`http://${h}/x`, { anyContentType: true }), /không được phép/);
+}
+check("isPublicIp: IPv4-mapped công khai vẫn được", isPublicIp("::ffff:808:808") && isPublicIp("2606:4700::1111"));
 
 console.log("== Tuỳ chọn (cho phép máy chủ cục bộ để thử)");
 process.env.IMPORT_ALLOW_PRIVATE = "1";

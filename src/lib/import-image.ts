@@ -6,6 +6,26 @@ import { MAX_UPLOAD_BYTES } from "./uploads.ts";
 // never reach machines of our own network: every address a host name leads to (also after each redirect) has to be public.
 const MAX_REDIRECTS = 4;
 
+// the eight 16-bit groups of an IPv6 address (handles "::" and a dotted IPv4 tail), or null when it is not one
+function ipv6Groups(ip: string): number[] | null {
+  let x = ip.toLowerCase().split("%")[0];
+  const tail = /(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(x);
+  if (tail) {
+    const o = tail.slice(1).map(Number);
+    if (o.some((n) => n > 255)) return null;
+    x = x.slice(0, tail.index) + ((o[0] << 8) | o[1]).toString(16) + ":" + ((o[2] << 8) | o[3]).toString(16);
+  }
+  const halves = x.split("::");
+  if (halves.length > 2) return null;
+  const part = (h: string) => (h === "" ? [] : h.split(":").map((g) => parseInt(g, 16)));
+  const head = part(halves[0]);
+  const rest = halves.length === 2 ? part(halves[1]) : [];
+  const fill = 8 - head.length - rest.length;
+  if (halves.length === 2 ? fill < 0 : head.length !== 8) return null;
+  const all = halves.length === 2 ? [...head, ...Array<number>(fill).fill(0), ...rest] : head;
+  return all.length === 8 && all.every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffff) ? all : null;
+}
+
 // true when `ip` is a normal address on the internet (not loopback, private, link-local, multicast, ...)
 export function isPublicIp(ip: string): boolean {
   const v = net.isIP(ip);
@@ -20,11 +40,17 @@ export function isPublicIp(ip: string): boolean {
     return true;
   }
   if (v === 6) {
-    const x = ip.toLowerCase();
-    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(x); // IPv4 written as IPv6
-    if (mapped) return isPublicIp(mapped[1]);
-    if (x === "::" || x === "::1") return false;
-    if (/^f[cd]/.test(x) || /^fe[89ab]/.test(x) || x.startsWith("ff")) return false; // unique local, link-local, multicast
+    const g = ipv6Groups(ip);
+    if (!g) return false;
+    const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+    const zeros = (n: number) => g.slice(0, n).every((x) => x === 0);
+    if (zeros(5) && g[5] === 0xffff) return isPublicIp(v4(g[6], g[7])); // IPv4-mapped, also when written in hex (::ffff:7f00:1)
+    if (zeros(6)) return g[6] === 0 && g[7] <= 1 ? false : isPublicIp(v4(g[6], g[7])); // ::, ::1 and the old IPv4-compatible form
+    if (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0) return isPublicIp(v4(g[6], g[7])); // NAT64
+    if (g[0] === 0x2002) return isPublicIp(v4(g[1], g[2])); // 6to4
+    if (g[0] === 0x2001 && (g[1] === 0 || g[1] === 0xdb8)) return false; // Teredo, documentation
+    if (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) return false; // discard-only
+    if ((g[0] & 0xfe00) === 0xfc00 || (g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xff00) === 0xff00) return false; // unique local, link-local, multicast
     return true;
   }
   return false;

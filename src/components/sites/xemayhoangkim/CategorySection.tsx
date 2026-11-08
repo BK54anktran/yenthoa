@@ -155,16 +155,17 @@ export function CategorySection({ cat }: { cat: ShowcaseCategory }) {
       {/* brand name + the carousel of its models. Phones: the name on its own line, the carousel under it. */}
       <Reveal delay={80}>
       <div className="mx-auto flex max-w-[1250px] flex-col gap-4 px-4 py-8 md:flex-row md:items-center md:gap-8 md:py-10">
-        <h2 className="flex shrink-0 items-center gap-2 text-[clamp(32px,3.6vw,50px)] font-extrabold uppercase leading-none tracking-[-0.02em] md:w-[19rem]">
+        <h2 className="shrink-0 text-[clamp(32px,3.6vw,50px)] font-extrabold uppercase leading-none tracking-[-0.02em] md:w-[19rem]">
+          {/* the count follows the last word of the name (inline), so a name that wraps onto two lines keeps it attached */}
           {cat.href ? (
-            <Link href={cat.href} className="flex items-center gap-2 hover:text-[#de0000]" aria-label={`Xem tất cả xe ${cat.name}`}>
-              <span>{cat.name}</span>
-              <sup className="text-base font-medium text-[#de0000]">{cat.total}</sup>
+            <Link href={cat.href} className="hover:text-[#de0000]" aria-label={`Xem tất cả xe ${cat.name}`}>
+              {cat.name}
+              <sup className="ml-2 text-base font-medium text-[#de0000]">{cat.total}</sup>
             </Link>
           ) : (
-            <span className="flex items-center gap-2">
-              <span>{cat.name}</span>
-              <sup className="text-base font-medium text-[#de0000]">{cat.total}</sup>
+            <span>
+              {cat.name}
+              <sup className="ml-2 text-base font-medium text-[#de0000]">{cat.total}</sup>
             </span>
           )}
         </h2>

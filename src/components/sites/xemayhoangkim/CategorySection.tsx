@@ -132,6 +132,9 @@ export function CategorySection({ cat }: { cat: ShowcaseCategory }) {
               alt={x.name}
               fill
               sizes="(min-width: 1024px) 50vw, (min-width: 768px) 62vw, 100vw"
+              // already a small WebP (kept to 1600px by the uploader): the original is served as it is, so a slow or stuck
+              // resize request can never leave the big photo empty (the browser does not retry a failed image)
+              unoptimized
               className={`object-contain p-4 transition-opacity duration-500 md:p-10 lg:px-[24%] lg:py-8 ${k === sel ? "opacity-100" : "opacity-0"}`}
             />
           ))}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deletePostAction, togglePostAction } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { Pagination } from "@/components/admin/Pagination";
 import { PageTitle, btnCls, btnGhost, inputCls } from "@/components/admin/ui";
 import { listPosts } from "@/lib/admin-repo";
 import { formatDate, postHref } from "@/lib/posts";
@@ -55,13 +56,7 @@ export default async function PostsAdmin({ searchParams }: { searchParams: Promi
           </tbody>
         </table>
       </div>
-      {pages > 1 && (
-        <nav aria-label="Phân trang" className="mt-4 flex items-center gap-3 text-sm">
-          {page > 1 && <Link href={href(page - 1)} className={btnGhost}>‹ Trước</Link>}
-          <span>Trang {page}/{pages}</span>
-          {page < pages && <Link href={href(page + 1)} className={btnGhost}>Sau ›</Link>}
-        </nav>
-      )}
+      <Pagination page={page} pages={pages} href={href} />
     </>
   );
 }

@@ -32,14 +32,46 @@ export async function getPostById(id: number): Promise<PostDetailData | null> {
   return r ? { id: r.id, slug: r.slug, title: r.title, date: r.date, section: r.section, excerpt: r.excerpt, img: r.img, html: r.html, published: !!r.published } : null;
 }
 
-export async function listProductsAdmin(q: string, page: number) {
-  const where = q ? "WHERE name LIKE ? OR slug LIKE ? OR code LIKE ?" : "";
-  const args = q ? [like(q), like(q), like(q)] : [];
+// the sort choices of the admin product list; `order` is fixed text here, never taken from the request
+export const PRODUCT_SORTS = [
+  { id: "ten", label: "Tên A → Z", order: "name" },
+  { id: "ten-giam", label: "Tên Z → A", order: "name DESC" },
+  { id: "gia-tang", label: "Giá thấp → cao", order: "price, name" },
+  { id: "gia-giam", label: "Giá cao → thấp", order: "price DESC, name" },
+  { id: "capnhat", label: "Mới cập nhật", order: "updated_at DESC, id DESC" },
+  { id: "ma", label: "Mã xe", order: "code, name" },
+] as const;
+export type ProductSortId = (typeof PRODUCT_SORTS)[number]["id"];
+export type ProductStatus = "" | "hien" | "an";
+export type ProductFilter = { q: string; brand: string; type: string; status: ProductStatus; sort: ProductSortId };
+
+export async function listProductsAdmin(f: ProductFilter, page: number) {
+  const conds: string[] = [];
+  const args: (string | number)[] = [];
+  if (f.q) {
+    conds.push("(name LIKE ? OR slug LIKE ? OR code LIKE ?)");
+    args.push(like(f.q), like(f.q), like(f.q));
+  }
+  if (f.brand) {
+    conds.push("brand = ?");
+    args.push(f.brand);
+  }
+  if (f.type) {
+    conds.push("JSON_CONTAINS(types, JSON_QUOTE(?))");
+    args.push(f.type);
+  }
+  if (f.status) {
+    conds.push("active = ?");
+    args.push(f.status === "hien" ? 1 : 0);
+  }
+  const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+  const order = (PRODUCT_SORTS.find((x) => x.id === f.sort) ?? PRODUCT_SORTS[0]).order;
   const [{ n }] = await query<{ n: number }>(`SELECT COUNT(*) AS n FROM products ${where}`, args);
   const pages = Math.max(1, Math.ceil(n / ADMIN_PAGE));
   const cur = Math.min(Math.max(1, page), pages);
-  const rows = await query<Pick<ProductRow, "id" | "slug" | "code" | "img" | "name" | "brand" | "price" | "price_max" | "active">>(
-    `SELECT id, slug, code, img, name, brand, price, price_max, active FROM products ${where} ORDER BY name LIMIT ? OFFSET ?`,
+  // updated_vn: the last change as a date in Vietnam time, whatever time zone the database server runs in
+  const rows = await query<Pick<ProductRow, "id" | "slug" | "code" | "img" | "name" | "brand" | "price" | "price_max" | "active"> & { updated_vn: string }>(
+    `SELECT id, slug, code, img, name, brand, price, price_max, active, DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+07:00'), '%d/%m/%Y') AS updated_vn FROM products ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,
     [...args, ADMIN_PAGE, (cur - 1) * ADMIN_PAGE],
   );
   return { rows, total: n, pages, page: cur };

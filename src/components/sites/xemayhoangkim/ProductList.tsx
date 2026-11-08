@@ -191,7 +191,7 @@ export function ProductList({ initialGroups, products }: { initialGroups: string
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {shown.map((m) => (
                   <li key={m.slug} className="flex flex-col bg-white p-4">
-                    <h2 className="text-lg font-semibold uppercase">{m.name}</h2>
+                    <h2 className="text-lg font-semibold uppercase sm:min-h-14">{m.name}</h2>
                     <p className="text-xs text-neutral-500">
                       {brandName(taxonomy, m.brand)}
                       {m.types[0] && typeName(taxonomy, m.types[0]) ? ` · ${typeName(taxonomy, m.types[0])}` : ""}
@@ -200,7 +200,7 @@ export function ProductList({ initialGroups, products }: { initialGroups: string
                       <span className="text-xs text-neutral-500">Giá </span>
                       <strong>{priceLabel(m)}</strong>
                     </p>
-                    <Link href={productHref(m.slug)} className="group mt-3 block">
+                    <Link href={productHref(m.slug)} className="group my-3 block">
                       <div className="relative aspect-[4/3] overflow-hidden bg-white">
                         {m.img && (
                           <Image
@@ -215,7 +215,7 @@ export function ProductList({ initialGroups, products }: { initialGroups: string
                     </Link>
                     <Link
                       href={productHref(m.slug)}
-                      className="mt-3 bg-black px-4 py-2.5 text-center text-xs font-bold uppercase text-white hover:bg-[#de0000]"
+                      className="mt-auto bg-black px-4 py-2.5 text-center text-xs font-bold uppercase text-white hover:bg-[#de0000]"
                     >
                       Xem chi tiết
                     </Link>
